@@ -1,0 +1,34 @@
+{
+    "name": "agashe/sigmaphp-container",
+    "description": "PHP Dependency Injection Container",
+	"keywords": [
+        "SigmaPHP", "framework", "container", "dependency", "injection"],
+    "type": "library",
+	"license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "SigmaPHP\\Container\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Mohamed Yousef",
+            "email": "engineer.mohamed.yossef@gmail.com"
+        }
+    ],
+    "require": {
+        "psr/container": "^2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "provide": {
+        "psr/container-implementation": "^1.0"
+    },
+    "scripts": {
+        "test": [
+            "Composer\\Config::disableProcessTimeout",
+            "./vendor/bin/phpunit tests/"
+        ]
+    }
+}
