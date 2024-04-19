@@ -10,6 +10,12 @@
             "SigmaPHP\\Container\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "SigmaPHP\\Container\\Tests\\": "tests/",
+            "SigmaPHP\\Container\\Tests\\Examples\\": "tests/examples"
+        }
+    },
     "authors": [
         {
             "name": "Mohamed Yousef",
