@@ -56,10 +56,7 @@ class ContainerTest extends TestCase
             'dependencies'
         );
 
-        $this->assertEquals(
-            MailerExample::class,
-            $dependencies['mailer']    
-        );
+        $this->assertTrue($dependencies['mailer'] instanceof MailerExample);
     }
 
     /**
@@ -93,5 +90,64 @@ class ContainerTest extends TestCase
             MailerExample::class,
             $container->get('mailer')
         );
+    }
+    
+    /**
+     * Test container will throw exception if id is not found.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionIfIdIsNotFound()
+    {   
+        $this->expectException(IdNotFoundException::class);
+
+        $container = new Container();
+        $container->get('mailer');
+    }
+
+    /**
+     * Test container will throw exception for invalid id or definition.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionForInvalidIdOrDefinition()
+    {     
+        $container = new Container();
+        
+        $invalidValues = [
+            [],
+            false,
+            null,
+            '',
+            123,
+            new \StdClass(),
+            fn() => true
+        ];
+
+        $countInvalidIds = $countInvalidDefinitions = count($invalidValues);
+
+        foreach ($invalidValues as
+         $invalidValue) {
+            try {
+                $container->set($invalidValue, MailerExample::class);
+            } catch (\Exception $e) {
+                if ($e instanceof ContainerException) {
+                    $countInvalidIds -= 1;
+                }
+            }
+
+            try {
+                $container->set('mailer', $invalidValue);
+            } catch (\Exception $e) {
+                if ($e instanceof ContainerException) {
+                    $countInvalidDefinitions -= 1;
+                }
+            }
+        }
+
+        $this->assertEquals(0, $countInvalidIds);
+        $this->assertEquals(2, $countInvalidDefinitions);
     }
 }

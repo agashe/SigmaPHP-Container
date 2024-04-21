@@ -4,6 +4,8 @@ namespace SigmaPHP\Container;
 
 use SigmaPHP\Container\Interfaces\ContainerInterface;
 use Psr\Container\ContainerInterface as PsrContainerInterface;
+use SigmaPHP\Container\Exceptions\ContainerException;
+use SigmaPHP\Container\Exceptions\IdNotFoundException;
 
 /**
  * Container Class
@@ -23,7 +25,13 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function get($id)
     {
-        return (new ('\\' . $this->dependencies[$id]));
+        if (!$this->has($id)) {
+            throw new IdNotFoundException(
+                "The id \"{$id}\" is not found in the container !"
+            );
+        }
+
+        return $this->dependencies[$id];
     }
 
     /**
@@ -48,30 +56,68 @@ class Container implements PsrContainerInterface , ContainerInterface
     {
         $this->validateId($id);
         $this->validateDefinition($definition);
-        $this->dependencies[$id] = $definition;
+        
+        // in case of class we create new object and save it
+        if (is_string($definition)) {
+            $this->dependencies[$id] = (new ('\\' . $definition));
+        } else {
+            $this->dependencies[$id] = $definition;
+        }
+        
         return $this;
     }
 
     /**
      * Check that the id is valid.
      * 
+     * We have 3 valid types of ids so far :
+     * - class path (e.g, Mailer::class) 
+     * - interface path (e.g, MailerInterface::class) 
+     * - string alias (e.g, 'mailer') 
+     * 
      * @param string $id
      * @return void
      */
     public function validateId($id)
     {
-
+        if (!is_string($id) || empty($id)) {
+            throw new ContainerException(
+                "Invalid id. Id can only accept string values !"
+            );
+        }
     }
 
     /**
      * Check that the definition is valid.
      * 
+     * We have 3 valid types of definitions so far :
+     * - class path (e.g, Mailer::class) 
+     * - callback functions "factories" (e.g, fn() => {...}) 
+     * - objects (e.g, new Mailer()) 
+     * 
      * @param string $definition
      * @return void
      */
     public function validateDefinition($definition)
-    {
+    { 
+        $invalid = false;
 
+        if (is_string($definition)) {
+            if (empty($definition) || !class_exists('\\' . $definition)) {
+                $invalid = true;
+            }
+        } else {
+            if (!is_callable($definition) && !is_object($definition)) {
+                $invalid = true;
+            }
+        }
+        
+        if ($invalid) {
+            throw new ContainerException(
+                "Invalid definition : " .
+                "only classes , objects and callbacks are accepted !"
+            );
+        }
     }
 
     /**
