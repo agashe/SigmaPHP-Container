@@ -2,7 +2,7 @@
 
 namespace SigmaPHP\Container\Tests\Examples;
 
-class Mailer
+interface MailerInterface
 {
     /**
      * Send mai lto an address.
@@ -11,8 +11,5 @@ class Mailer
      * @param string $body
      * @return void
      */
-    public function send($email, $body)
-    {
-        echo "The message {$body} was sent to {$email}" . PHP_EOL;
-    }
+    public function send($email, $body);
 }

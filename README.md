@@ -4,7 +4,7 @@ A dependency injection container for PHP. Dependency injection is a powerful des
 
 ## Features
 
-* Compatible with [PSR-11](https://www.php-fig.org/psr/psr-11/)
+* Compliant with [PSR-11](https://www.php-fig.org/psr/psr-11/)
 * Custom definitions for dependencies 
 * Support constructor and setters injection
 * Support factories for in depth customization

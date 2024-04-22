@@ -2,6 +2,7 @@
 
 namespace SigmaPHP\Container;
 
+use Closure;
 use SigmaPHP\Container\Interfaces\ContainerInterface;
 use Psr\Container\ContainerInterface as PsrContainerInterface;
 use SigmaPHP\Container\Exceptions\ContainerException;
@@ -18,6 +19,16 @@ class Container implements PsrContainerInterface , ContainerInterface
     protected $dependencies = [];
 
     /**
+     * @var array $params 
+     */
+    protected $params = [];
+
+    /**
+     * @var array $methods 
+     */
+    protected $methods = [];
+
+    /**
      * Get an instance for a definition from the container.
      * 
      * @param string $id
@@ -31,7 +42,14 @@ class Container implements PsrContainerInterface , ContainerInterface
             );
         }
 
-        return $this->dependencies[$id];
+        $definition = $this->dependencies[$id];
+
+        if (is_callable($definition) && ($definition instanceof \Closure)) {
+            $result = $definition();
+            return $result;
+        }
+        
+        return $definition;
     }
 
     /**
@@ -56,7 +74,7 @@ class Container implements PsrContainerInterface , ContainerInterface
     {
         $this->validateId($id);
         $this->validateDefinition($definition);
-        
+
         // in case of class we create new object and save it
         if (is_string($definition)) {
             $this->dependencies[$id] = (new ('\\' . $definition));
