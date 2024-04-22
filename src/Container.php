@@ -7,6 +7,7 @@ use SigmaPHP\Container\Interfaces\ContainerInterface;
 use Psr\Container\ContainerInterface as PsrContainerInterface;
 use SigmaPHP\Container\Exceptions\ContainerException;
 use SigmaPHP\Container\Exceptions\IdNotFoundException;
+use SigmaPHP\Container\Exceptions\ParameterNotFoundException;
 
 /**
  * Container Class
@@ -42,6 +43,27 @@ class Container implements PsrContainerInterface , ContainerInterface
             );
         }
 
+        // in case of objects , we save the object for future use
+        // this is like a cache mechanism , instead of creating 
+        // a new instance every time !
+        if (is_string($this->dependencies[$id])) {
+            $class = new \ReflectionClass($this->dependencies[$id]);
+            $instance = null;
+            
+            if ($class->getConstructor() !== null) {
+                $constructorParams = isset($this->params[$id]) ?
+                    $this->params[$id] : [];
+
+                // bind class dependencies !!
+
+                $instance = $class->newInstanceArgs($constructorParams);
+            } else {
+                $instance = $class->newInstance();
+            }
+
+            $this->dependencies[$id] = $instance; //(new ('\\' . $class));
+        }
+        
         $definition = $this->dependencies[$id];
 
         if (is_callable($definition) && ($definition instanceof \Closure)) {
@@ -74,13 +96,8 @@ class Container implements PsrContainerInterface , ContainerInterface
     {
         $this->validateId($id);
         $this->validateDefinition($definition);
-
-        // in case of class we create new object and save it
-        if (is_string($definition)) {
-            $this->dependencies[$id] = (new ('\\' . $definition));
-        } else {
-            $this->dependencies[$id] = $definition;
-        }
+        
+        $this->dependencies[$id] = $definition;
         
         return $this;
     }
@@ -96,7 +113,7 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @param string $id
      * @return void
      */
-    public function validateId($id)
+    protected function validateId($id)
     {
         if (!is_string($id) || empty($id)) {
             throw new ContainerException(
@@ -116,7 +133,7 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @param string $definition
      * @return void
      */
-    public function validateDefinition($definition)
+    protected function validateDefinition($definition)
     { 
         $invalid = false;
 
@@ -139,15 +156,38 @@ class Container implements PsrContainerInterface , ContainerInterface
     }
 
     /**
-     * Bind a parameter to a definition.
+     * Set a parameter or bind it to a definition.
      * 
      * @param string $name
      * @param mixed $value
      * @return self
      */
-    public function param($name, $value)
+    public function setParam($name, $value)
     {
+        if (!empty($this->dependencies)) {
+            $this->params[array_key_last($this->dependencies)][$name] = $value;
+        } else {
+            $this->params[$name] = $value;
+        }
 
+        return $this;
+    }
+
+     /**
+     * Get unbounded parameter's value.
+     * 
+     * @param string $name
+     * @return mixed
+     */
+    public function getParam($name)
+    {
+        if (!in_array($name, array_keys($this->params))) {
+            throw new ParameterNotFoundException(
+                "The parameter \"{$name}\" is not found in the container !"
+            );
+        }
+
+        return $this->params[$name];
     }
 
     /**
@@ -157,7 +197,7 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @param mixed $value
      * @return self
      */
-    public function method($name, $value)
+    public function setMethod($name, $value)
     {
 
     }

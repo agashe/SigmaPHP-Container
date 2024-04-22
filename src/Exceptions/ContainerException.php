@@ -7,5 +7,6 @@ use Psr\Container\ContainerExceptionInterface;
 /**
  * Container Exception
  */
-class ContainerException extends \Exception implements ContainerExceptionInterface
+class ContainerException extends \Exception implements 
+    ContainerExceptionInterface
 {}

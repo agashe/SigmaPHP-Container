@@ -17,29 +17,21 @@ interface ContainerInterface
     public function set($id, $definition);
 
     /**
-     * Check that the id is valid.
-     * 
-     * @param string $id
-     * @return void
-     */
-    public function validateId($id);
-
-    /**
-     * Check that the definition is valid.
-     * 
-     * @param mixed $definition
-     * @return void
-     */
-    public function validateDefinition($definition);
-
-    /**
-     * Bind a parameter to a definition.
+     * Set a parameter or bind it to a definition.
      * 
      * @param string $name
      * @param mixed $value
      * @return self
      */
-    public function param($name, $value);
+    public function setParam($name, $value);
+
+    /**
+     * Get unbounded parameter's value.
+     * 
+     * @param string $name
+     * @return self
+     */
+    public function getParam($name);
 
     /**
      * Bind a method to a definition.
@@ -48,5 +40,5 @@ interface ContainerInterface
      * @param mixed $value
      * @return self
      */
-    public function method($name, $value);
+    public function setMethod($name, $value);
 }
