@@ -406,4 +406,62 @@ class ContainerTest extends TestCase
         $length = $this->getPrivatePropertyValue($box, 'length');
         $this->assertEquals(10, $length);
     }
+    
+    /**
+     * Test primitive parameters default values are working.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testPrimitiveParametersDefaultValuesAreWorking()
+    {   
+        $container = new Container();
+
+        // parameters order has no effect
+        $container->set('box', BoxExample::class)
+            ->setParam('height', 30)
+            ->setParam('width' , 20);
+
+        $box = $container->get('box');
+
+        $height = $this->getPrivatePropertyValue($box, 'height');
+        $this->assertEquals(30, $height);
+
+        $width = $this->getPrivatePropertyValue($box, 'width');
+        $this->assertEquals(20, $width);
+        
+        $length = $this->getPrivatePropertyValue($box, 'length');
+        $this->assertEquals(50, $length);
+    }
+    
+    /**
+     * Test container can inject classes.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectClasses()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class, MailerExample::class);
+        $container->set(UserExample::class, UserExample::class)
+            ->setParam(MailerExample::class);
+
+        $this->assertInstanceOf(
+            UserExample::class,
+            $container->get(UserExample::class)
+        );
+
+        $user = $container->get(UserExample::class);
+        
+        $user->name = 'ahmed';
+        $user->email = 'ahmed@eample.com';
+        
+        $user->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message Hello \"ahmed\" was sent to ahmed@eample.com\n"
+        );
+    }
 }

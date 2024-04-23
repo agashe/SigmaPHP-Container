@@ -48,20 +48,38 @@ class Container implements PsrContainerInterface , ContainerInterface
         // a new instance every time !
         if (is_string($this->dependencies[$id])) {
             $class = new \ReflectionClass($this->dependencies[$id]);
+            $constructor = $class->getConstructor();
             $instance = null;
-            
-            if ($class->getConstructor() !== null) {
-                $constructorParams = isset($this->params[$id]) ?
-                    $this->params[$id] : [];
 
-                // bind class dependencies !!
+            $dependencyParameters = isset($this->params[$id]) ?
+                $this->params[$id] : [];
+
+            if ($constructor !== null) {
+                $constructorParams = [];
+                
+                // loop throw all args , and inject dependencies
+                foreach ($constructor->getParameters() as $parameter) {
+                    // check if parameter is a primitive or a class !!
+                    if ($parameter->getType() !== null) {
+                        $dependencyName = $parameter->getType()->getName();
+
+                        if (isset($dependencyParameters[$dependencyName])) {
+                            $constructorParams[] = $this->get($dependencyName);
+                        }
+                    } else {
+                        if (isset($dependencyParameters[$parameter->name])) {
+                            $constructorParams[] = 
+                                $dependencyParameters[$parameter->name];
+                        }
+                    }
+                }
 
                 $instance = $class->newInstanceArgs($constructorParams);
             } else {
                 $instance = $class->newInstance();
             }
 
-            $this->dependencies[$id] = $instance; //(new ('\\' . $class));
+            $this->dependencies[$id] = $instance;
         }
         
         $definition = $this->dependencies[$id];
@@ -162,8 +180,12 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @param mixed $value
      * @return self
      */
-    public function setParam($name, $value)
+    public function setParam($name, $value = null)
     {
+        if (empty($value)) {
+            $value = $name;
+        }
+
         if (!empty($this->dependencies)) {
             $this->params[array_key_last($this->dependencies)][$name] = $value;
         } else {

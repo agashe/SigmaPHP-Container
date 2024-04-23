@@ -22,7 +22,7 @@ class Box
     /**
      * Box Constructor
      */
-    public function __construct($height, $width, $length) {
+    public function __construct($height, $width, $length = 50) {
         $this->height = $height;
         $this->width = $width;
         $this->length = $length;
