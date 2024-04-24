@@ -8,7 +8,7 @@ class User
 {
     public $name;
     public $email;
-    private $mailer;
+    protected $mailer;
 
     public function __construct(Mailer $mailer)
     {

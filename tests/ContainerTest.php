@@ -10,6 +10,7 @@ use SigmaPHP\Container\Tests\Examples\MailerInterface as MailerExampleInterface;
 use SigmaPHP\Container\Tests\Examples\Greeter as GreeterExample;
 use SigmaPHP\Container\Tests\Examples\Box as BoxExample;
 use SigmaPHP\Container\Tests\Examples\User as UserExample;
+use SigmaPHP\Container\Tests\Examples\Admin as AdminExample;
 
 /**
  * Container Test
@@ -61,6 +62,46 @@ class ContainerTest extends TestCase
         );
 
         $this->assertEquals(MailerExample::class, $dependencies['mailer']);
+    }
+    
+    /**
+     * Test container can save definitions with single parameter.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanSaveDefinitionsWithSingleParameter()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+
+        // get private dependencies array
+        $dependencies = $this->getPrivatePropertyValue(
+            $container, 
+            'dependencies'
+        );
+
+        $this->assertEquals(
+            MailerExample::class,
+            $dependencies[MailerExample::class]
+        );
+    }
+    
+    /**
+     * Test container can throw exception if the single parameter definition
+     * is invalid - not a class path.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionIfInvalidSingleDefinition()
+    {   
+        $this->expectException(ContainerException::class);
+
+        $container = new Container();
+
+        $container->set('invalid');
     }
 
     /**
@@ -269,6 +310,7 @@ class ContainerTest extends TestCase
      */
     public function testFactoryCanAccessCurrentContainer()
     {   
+        // !! Not Implemented Yet !!
         $container = new Container();
 
         $container->set('mailer', function () {
@@ -279,6 +321,21 @@ class ContainerTest extends TestCase
             MailerExample::class,
             $container->get('mailer')
         );
+    }
+
+    /**
+     * Test container can accept arrow functions as definition.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanAcceptArrowFunctionsAsDefinition()
+    {   
+        $container = new Container();
+
+        $container->set('a_number', (fn() => 101 ));
+
+        $this->assertEquals(101, $container->get('a_number'));
     }
     
     /**
@@ -348,6 +405,43 @@ class ContainerTest extends TestCase
         $params = $this->getPrivatePropertyValue($container, 'params');
 
         $this->assertEquals('test', $params['db_name']);
+    }
+
+    /**
+     * Test container can define single parameters for classes path.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanDefineSingleParametersForClassesPath()
+    {   
+        $container = new Container();
+
+        $container->setParam(MailerExample::class);
+
+        // get private params array
+        $params = $this->getPrivatePropertyValue($container, 'params');
+
+        $this->assertEquals(
+            MailerExample::class,
+            $params[MailerExample::class]
+        );
+    }
+
+     /**
+     * Test container can throw exception if the single parameter for `setParam`
+     * is invalid - not a class path.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionIfInvalidSingleParameter()
+    {   
+        $this->expectException(ContainerException::class);
+
+        $container = new Container();
+
+        $container->setParam('invalid');
     }
 
     /**
@@ -462,6 +556,36 @@ class ContainerTest extends TestCase
 
         $this->expectOutputString(
             "The message Hello \"ahmed\" was sent to ahmed@eample.com\n"
+        );
+    }
+    
+    /**
+     * Test container can inject both classes and primitives.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectClassesAndPrimitives()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class, MailerExample::class);
+        $container->set(AdminExample::class, AdminExample::class)
+            ->setParam('name', 'admin')
+            ->setParam(MailerExample::class)
+            ->setParam('email', 'admin@example.com');
+
+        $this->assertInstanceOf(
+            AdminExample::class,
+            $container->get(AdminExample::class)
+        );
+
+        $admin = $container->get(AdminExample::class);
+        
+        $admin->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message Hello \"admin\" was sent to admin@example.com\n"
         );
     }
 }

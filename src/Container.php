@@ -110,8 +110,12 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @param mixed $definition
      * @return self 
      */
-    public function set($id, $definition)
+    public function set($id, $definition = null)
     {
+        if (empty($definition)) {
+            $definition = $id;
+        }
+
         $this->validateId($id);
         $this->validateDefinition($definition);
         
@@ -184,6 +188,9 @@ class Container implements PsrContainerInterface , ContainerInterface
     {
         if (empty($value)) {
             $value = $name;
+
+            // validate that the parameter is a valid class path
+            $this->validateDefinition($value);
         }
 
         if (!empty($this->dependencies)) {
