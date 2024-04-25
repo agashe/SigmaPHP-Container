@@ -11,6 +11,7 @@ use SigmaPHP\Container\Tests\Examples\Greeter as GreeterExample;
 use SigmaPHP\Container\Tests\Examples\Box as BoxExample;
 use SigmaPHP\Container\Tests\Examples\User as UserExample;
 use SigmaPHP\Container\Tests\Examples\Admin as AdminExample;
+use SigmaPHP\Container\Tests\Examples\Notification as NotificationExample;
 
 /**
  * Container Test
@@ -303,27 +304,6 @@ class ContainerTest extends TestCase
     }
     
     /**
-     * Test factory can access current container.
-     *
-     * @runInSeparateProcess
-     * @return void
-     */
-    public function testFactoryCanAccessCurrentContainer()
-    {   
-        // !! Not Implemented Yet !!
-        $container = new Container();
-
-        $container->set('mailer', function () {
-            return new MailerExample();
-        });
-
-        $this->assertInstanceOf(
-            MailerExample::class,
-            $container->get('mailer')
-        );
-    }
-
-    /**
      * Test container can accept arrow functions as definition.
      *
      * @runInSeparateProcess
@@ -456,7 +436,10 @@ class ContainerTest extends TestCase
 
         $container->setParam('db_name', 'test');
 
-        $this->assertEquals('test', $container->getParam('db_name'));
+        // get private params array
+        $params = $this->getPrivatePropertyValue($container, 'params');
+
+        $this->assertEquals('test', $params['db_name']);
     }
     
     /**
@@ -586,6 +569,61 @@ class ContainerTest extends TestCase
 
         $this->expectOutputString(
             "The message Hello \"admin\" was sent to admin@example.com\n"
+        );
+    }
+
+    /**
+     * Test factory can access current container.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testFactoryCanAccessCurrentContainer()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class, MailerExample::class);
+        $container->set(AdminExample::class, AdminExample::class)
+            ->setParam('name', 'super_admin')
+            ->setParam(MailerExample::class)
+            ->setParam('email', 'super_admin@example.com');
+
+        $container->set('super_admin', function ($c) {
+            return $c->get(AdminExample::class);
+        });
+
+        $this->assertInstanceOf(
+            AdminExample::class,
+            $container->get('super_admin')
+        );
+
+        $superAdmin = $container->get('super_admin');
+        
+        $superAdmin->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message Hello \"super_admin\" was " . 
+            "sent to super_admin@example.com\n"
+        );
+    }
+
+    /**
+     * Test arrow functions factory can access current container.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testArrowFunctionsFactoryCanAccessCurrentContainer()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class, MailerExample::class);
+
+        $container->set('my_mailer', fn($c) => $c->get(MailerExample::class));
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $container->get('my_mailer')
         );
     }
 }

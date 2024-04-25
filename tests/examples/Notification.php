@@ -4,43 +4,36 @@ namespace SigmaPHP\Container\Tests\Examples;
 
 use SigmaPHP\Container\Tests\Examples\Mailer;
 
-class User
+class Notification
 {
-    /**
-     * @var string $name
-     */
-    public $name;
-
-    /**
-     * @var string $email
-     */
-    public $email;
-
     /**
      * @var Mailer $mailer
      */
     protected $mailer;
 
     /**
-     * User Constructor
+     * Set mailer service.
      * 
      * @param Mailer $mailer
+     * @return void
      */
-    public function __construct(Mailer $mailer)
+    public function setMailer(Mailer $mailer)
     {
         $this->mailer = $mailer;
     }
 
     /**
-     * Send welcome mail to user's address.
+     * Push notification to user.
      * 
+     * @param string $name
+     * @param string $email
      * @return void
      */
-    public function sendWelcomeMail()
+    public function pushMessage($name, $email)
     {
         $this->mailer->send(
-            $this->email,
-            "Hello \"{$this->name}\""
+            $email,
+            "Notification to : \"{$name}\""
         );
     }
 }

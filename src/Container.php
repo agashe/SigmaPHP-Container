@@ -85,7 +85,15 @@ class Container implements PsrContainerInterface , ContainerInterface
         $definition = $this->dependencies[$id];
 
         if (is_callable($definition) && ($definition instanceof \Closure)) {
-            $result = $definition();
+            // check if factory accept the container as a parameter
+            $function = new \ReflectionFunction($definition);
+            
+            if ($function->getParameters() !== null) {
+                $result = $definition($this);
+            } else {
+                $result = $definition();
+            }
+
             return $result;
         }
         

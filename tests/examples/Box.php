@@ -21,6 +21,10 @@ class Box
 
     /**
      * Box Constructor
+     * 
+     * @param float $height
+     * @param float $width
+     * @param float $length
      */
     public function __construct($height, $width, $length = 50) {
         $this->height = $height;

@@ -5,7 +5,7 @@ namespace SigmaPHP\Container\Tests\Examples;
 class Mailer
 {
     /**
-     * Send mai lto an address.
+     * Send mail to an address.
      * 
      * @param string $email
      * @param string $body
