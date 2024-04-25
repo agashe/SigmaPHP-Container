@@ -1,5 +1,6 @@
-<?php 
+<?php
 
+use PHPUnit\Framework\Error\Notice;
 use PHPUnit\Framework\TestCase;
 use SigmaPHP\Container\Container;
 use SigmaPHP\Container\Exceptions\ContainerException;
@@ -12,6 +13,7 @@ use SigmaPHP\Container\Tests\Examples\Box as BoxExample;
 use SigmaPHP\Container\Tests\Examples\User as UserExample;
 use SigmaPHP\Container\Tests\Examples\Admin as AdminExample;
 use SigmaPHP\Container\Tests\Examples\Notification as NotificationExample;
+use SigmaPHP\Container\Tests\Examples\Log as LogExample;
 
 /**
  * Container Test
@@ -538,7 +540,7 @@ class ContainerTest extends TestCase
         $user->sendWelcomeMail();
 
         $this->expectOutputString(
-            "The message Hello \"ahmed\" was sent to ahmed@eample.com\n"
+            "The message (Hello \"ahmed\") was sent to : ahmed@eample.com\n"
         );
     }
     
@@ -568,7 +570,99 @@ class ContainerTest extends TestCase
         $admin->sendWelcomeMail();
 
         $this->expectOutputString(
-            "The message Hello \"admin\" was sent to admin@example.com\n"
+            "The message (Hello \"admin\") was sent to : admin@example.com\n"
+        );
+    }
+
+    /**
+     * Test container can inject classes as a parameter with name.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectClassesAsAParameterWithName()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class, MailerExample::class);
+        $container->set(AdminExample::class, AdminExample::class)
+            ->setParam('name', 'admin')
+            ->setParam('mailer', MailerExample::class)
+            ->setParam('email', 'admin@example.com');
+
+        $this->assertInstanceOf(
+            AdminExample::class,
+            $container->get(AdminExample::class)
+        );
+
+        $admin = $container->get(AdminExample::class);
+        
+        $admin->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message (Hello \"admin\") was sent to : admin@example.com\n"
+        );
+    }
+
+    /**
+     * Test container can inject objects as parameter.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectObjectsAsParameter()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(AdminExample::class)
+            ->setParam('name', 'admin')
+            ->setParam('mailer', (new MailerExample()))
+            ->setParam('email', 'admin@example.com');
+
+        $this->assertInstanceOf(
+            AdminExample::class,
+            $container->get(AdminExample::class)
+        );
+
+        $admin = $container->get(AdminExample::class);
+        
+        $admin->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message (Hello \"admin\") was sent to : admin@example.com\n"
+        );
+    }
+    
+    /**
+     * Test container can inject factories as parameter.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectFactoriesAsParameter()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(AdminExample::class)
+            ->setParam('name', 'admin')
+            ->setParam('mailer', function ($c) {
+                return $c->get(MailerExample::class);
+            })
+            ->setParam('email', 'admin@example.com');
+
+        $this->assertInstanceOf(
+            AdminExample::class,
+            $container->get(AdminExample::class)
+        );
+
+        $admin = $container->get(AdminExample::class);
+        
+        $admin->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message (Hello \"admin\") was sent to : admin@example.com\n"
         );
     }
 
@@ -602,8 +696,8 @@ class ContainerTest extends TestCase
         $superAdmin->sendWelcomeMail();
 
         $this->expectOutputString(
-            "The message Hello \"super_admin\" was " . 
-            "sent to super_admin@example.com\n"
+            "The message (Hello \"super_admin\") was " . 
+            "sent to : super_admin@example.com\n"
         );
     }
 
@@ -624,6 +718,138 @@ class ContainerTest extends TestCase
         $this->assertInstanceOf(
             MailerExample::class,
             $container->get('my_mailer')
+        );
+    }
+    
+    /**
+     * Test container can inject setter method.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectSetterMethod()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(NotificationExample::class)
+            ->setMethod('setMailer', [
+                'mailer' => MailerExample::class
+            ]);
+
+        $this->assertInstanceOf(
+            NotificationExample::class,
+            $container->get(NotificationExample::class)
+        );
+
+        $notificationService = $container->get(NotificationExample::class);
+        
+        $notificationService->pushMessage('ali', 'ali@example.com');
+
+        $this->expectOutputString(
+            "The message (Notification to : \"ali\") was " . 
+            "sent to : ali@example.com\n"
+        );
+    }
+    
+    /**
+     * Test container can inject setter method with primitive parameters.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectSetterMethodWithPrimitiveParameters()
+    {   
+        $container = new Container();
+
+        $container->setParam('admin_name', 'admin1');
+        $container->setParam('admin_email', 'admin1@example.com');
+
+        $container->set(MailerExample::class);
+
+        $container->set(LogExample::class)
+            ->setMethod('setMailerAndAdmin', [
+                'mailer' => MailerExample::class,
+                'name' => $container->getParam('admin_name'), 
+                'email' => $container->getParam('admin_email')
+            ]);
+
+        $this->assertInstanceOf(
+            LogExample::class,
+            $container->get(LogExample::class)
+        );
+
+        $notificationService = $container->get(LogExample::class);
+        
+        $notificationService->sendAlert();
+
+        $this->expectOutputString(
+            "The message (Alert to : \"admin1\") was " . 
+            "sent to : admin1@example.com\n"
+        );
+    }
+
+    /**
+     * Test container can inject objects as setter method.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectObjectsAsSetterMethod()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(NotificationExample::class)
+            ->setMethod('setMailer', [
+                'mailer' => (new MailerExample())
+            ]);
+
+        $this->assertInstanceOf(
+            NotificationExample::class,
+            $container->get(NotificationExample::class)
+        );
+
+        $notificationService = $container->get(NotificationExample::class);
+        
+        $notificationService->pushMessage('ali', 'ali@example.com');
+
+        $this->expectOutputString(
+            "The message (Notification to : \"ali\") was " . 
+            "sent to : ali@example.com\n"
+        );
+    }
+    
+    /**
+     * Test container can inject factories as setter method.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectFactoriesAsSetterMethod()
+    {   
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(NotificationExample::class)
+            ->setMethod('setMailer', [
+                'mailer' => function ($c) {
+                    return $c->get(MailerExample::class);
+                }
+            ]);
+
+        $this->assertInstanceOf(
+            NotificationExample::class,
+            $container->get(NotificationExample::class)
+        );
+
+        $notificationService = $container->get(NotificationExample::class);
+        
+        $notificationService->pushMessage('ali', 'ali@example.com');
+
+        $this->expectOutputString(
+            "The message (Notification to : \"ali\") was " . 
+            "sent to : ali@example.com\n"
         );
     }
 }

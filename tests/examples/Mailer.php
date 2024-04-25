@@ -13,6 +13,6 @@ class Mailer
      */
     public function send($email, $body)
     {
-        echo "The message {$body} was sent to {$email}" . PHP_EOL;
+        echo "The message ({$body}) was sent to : {$email}" . PHP_EOL;
     }
 }
