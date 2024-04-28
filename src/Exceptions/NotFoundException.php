@@ -5,8 +5,8 @@ namespace SigmaPHP\Container\Exceptions;
 use Psr\Container\NotFoundExceptionInterface;
 
 /**
- * Parameter Not Found Exception
+ * Not Found Exception
  */
-class ParameterNotFoundException extends \Exception implements 
+class NotFoundException extends \Exception implements 
     NotFoundExceptionInterface
 {}

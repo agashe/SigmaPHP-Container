@@ -17,7 +17,7 @@ interface ContainerInterface
     public function set($id, $definition);
 
     /**
-     * Set a parameter or bind it to a definition.
+     * Bind a parameter to a definition.
      * 
      * @param string $name
      * @param mixed $value
@@ -26,19 +26,28 @@ interface ContainerInterface
     public function setParam($name, $value);
 
     /**
-     * Get unbounded parameter's value.
-     * 
-     * @param string $name
-     * @return self
-     */
-    public function getParam($name);
-
-    /**
      * Bind a method to a definition.
      * 
      * @param string $name
-     * @param mixed $value
+     * @param mixed $args
      * @return self
      */
-    public function setMethod($name, $value);
+    public function setMethod($name, $args);
+
+    /**
+     * Set a constant value in the container.
+     * 
+     * @param string $name
+     * @param mixed $value
+     * @return void
+     */
+    public function setValue($name, $value);
+
+    /**
+     * Get a constant value from in the container.
+     * 
+     * @param string $name
+     * @return mixed
+     */
+    public function getValue($name);
 }

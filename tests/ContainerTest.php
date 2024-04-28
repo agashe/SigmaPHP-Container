@@ -1,11 +1,9 @@
 <?php
 
-use PHPUnit\Framework\Error\Notice;
 use PHPUnit\Framework\TestCase;
 use SigmaPHP\Container\Container;
 use SigmaPHP\Container\Exceptions\ContainerException;
-use SigmaPHP\Container\Exceptions\IdNotFoundException;
-use SigmaPHP\Container\Exceptions\ParameterNotFoundException;
+use SigmaPHP\Container\Exceptions\NotFoundException;
 use SigmaPHP\Container\Tests\Examples\Mailer as MailerExample;
 use SigmaPHP\Container\Tests\Examples\MailerInterface as MailerExampleInterface;
 use SigmaPHP\Container\Tests\Examples\Greeter as GreeterExample;
@@ -166,7 +164,7 @@ class ContainerTest extends TestCase
      */
     public function testContainerWillThrowExceptionIfIdIsNotFound()
     {   
-        $this->expectException(IdNotFoundException::class);
+        $this->expectException(NotFoundException::class);
 
         $container = new Container();
         $container->get('mailer');
@@ -381,12 +379,13 @@ class ContainerTest extends TestCase
     {   
         $container = new Container();
 
-        $container->setParam('db_name', 'test');
+        $container->set('mailer', MailerExample::class)
+            ->setParam('user_name', 'test');
 
         // get private params array
         $params = $this->getPrivatePropertyValue($container, 'params');
 
-        $this->assertEquals('test', $params['db_name']);
+        $this->assertEquals('test', $params['mailer']['user_name']);
     }
 
     /**
@@ -399,18 +398,35 @@ class ContainerTest extends TestCase
     {   
         $container = new Container();
 
-        $container->setParam(MailerExample::class);
+        $container->set(UserExample::class)
+            ->setParam(MailerExample::class);
 
         // get private params array
         $params = $this->getPrivatePropertyValue($container, 'params');
 
         $this->assertEquals(
             MailerExample::class,
-            $params[MailerExample::class]
+            $params[UserExample::class][MailerExample::class]
         );
     }
 
-     /**
+    /**
+     * Test container can throw exception if the single parameter for `setParam`
+     * is not bounded to a class.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionIfParameterNotBounded()
+    {   
+        $this->expectException(ContainerException::class);
+
+        $container = new Container();
+
+        $container->setParam('invalid');
+    }
+
+    /**
      * Test container can throw exception if the single parameter for `setParam`
      * is invalid - not a class path.
      *
@@ -423,39 +439,8 @@ class ContainerTest extends TestCase
 
         $container = new Container();
 
-        $container->setParam('invalid');
-    }
-
-    /**
-     * Test container can get unbounded param.
-     *
-     * @runInSeparateProcess
-     * @return void
-     */
-    public function testContainerCanGetUnboundedParam()
-    {   
-        $container = new Container();
-
-        $container->setParam('db_name', 'test');
-
-        // get private params array
-        $params = $this->getPrivatePropertyValue($container, 'params');
-
-        $this->assertEquals('test', $params['db_name']);
-    }
-    
-    /**
-     * Test container will throw exception if param is not found.
-     *
-     * @runInSeparateProcess
-     * @return void
-     */
-    public function testContainerWillThrowExceptionIfParamIsNotFound()
-    {   
-        $this->expectException(ParameterNotFoundException::class);
-
-        $container = new Container();
-        $container->getParam('unknown');
+        $container->set('mailer', MailerExample::class)
+            ->setParam('invalid');
     }
 
     /**
@@ -720,7 +705,54 @@ class ContainerTest extends TestCase
             $container->get('my_mailer')
         );
     }
+
+     /**
+     * Test container can set global value.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanSetGlobalValue()
+    {   
+        $container = new Container();
+
+        $container->setValue('db_name', 'test');
+
+        // get private values array
+        $values = $this->getPrivatePropertyValue($container, 'values');
+
+        $this->assertEquals('test', $values['db_name']);
+    }
     
+    /**
+     * Test container can get global value.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanGetGlobalValue()
+    {   
+        $container = new Container();
+
+        $container->setValue('db_name', 'test');
+
+        $this->assertEquals('test', $container->getValue('db_name'));
+    }
+
+    /**
+     * Test container will throw exception if global value is not found.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionIfGlobalValueIsNotFound()
+    {   
+        $this->expectException(NotFoundException::class);
+
+        $container = new Container();
+        $container->getValue('unknown');
+    }
+        
     /**
      * Test container can inject setter method.
      *
@@ -762,16 +794,16 @@ class ContainerTest extends TestCase
     {   
         $container = new Container();
 
-        $container->setParam('admin_name', 'admin1');
-        $container->setParam('admin_email', 'admin1@example.com');
+        $container->setValue('admin_name', 'admin1');
+        $container->setValue('admin_email', 'admin1@example.com');
 
         $container->set(MailerExample::class);
 
         $container->set(LogExample::class)
             ->setMethod('setMailerAndAdmin', [
                 'mailer' => MailerExample::class,
-                'name' => $container->getParam('admin_name'), 
-                'email' => $container->getParam('admin_email')
+                'name' => $container->getValue('admin_name'), 
+                'email' => $container->getValue('admin_email')
             ]);
 
         $this->assertInstanceOf(

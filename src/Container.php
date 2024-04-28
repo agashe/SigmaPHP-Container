@@ -6,8 +6,7 @@ use Closure;
 use SigmaPHP\Container\Interfaces\ContainerInterface;
 use Psr\Container\ContainerInterface as PsrContainerInterface;
 use SigmaPHP\Container\Exceptions\ContainerException;
-use SigmaPHP\Container\Exceptions\IdNotFoundException;
-use SigmaPHP\Container\Exceptions\ParameterNotFoundException;
+use SigmaPHP\Container\Exceptions\NotFoundException;
 
 /**
  * Container Class
@@ -30,6 +29,11 @@ class Container implements PsrContainerInterface , ContainerInterface
     protected $methods = [];
 
     /**
+     * @var array $values 
+     */
+    protected $values = [];
+
+    /**
      * Get an instance for a definition from the container.
      * 
      * @param string $id
@@ -38,7 +42,7 @@ class Container implements PsrContainerInterface , ContainerInterface
     public function get($id)
     {
         if (!$this->has($id)) {
-            throw new IdNotFoundException(
+            throw new NotFoundException(
                 "The id \"{$id}\" is not found in the container !"
             );
         }
@@ -290,58 +294,79 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function setParam($name, $value = null)
     {
-        if (empty($value)) {
-            $value = $name;
-
-            // validate that the parameter is a valid class path
-            $this->validateDefinition($value);
-        }
-
-        if (!empty($this->dependencies)) {
-            $this->params[array_key_last($this->dependencies)][$name] = $value;
-        } else {
-            $this->params[$name] = $value;
-        }
-
-        return $this;
-    }
-
-     /**
-     * Get unbounded parameter's value.
-     * 
-     * @param string $name
-     * @return mixed
-     */
-    public function getParam($name)
-    {
-        if (!in_array($name, array_keys($this->params))) {
-            throw new ParameterNotFoundException(
-                "The parameter \"{$name}\" is not found in the container !"
+        if (empty($this->dependencies) ||
+            !class_exists(end($this->dependencies))
+        ) {
+            throw new ContainerException(
+                "The parameter \"{$name}\" should " . 
+                "be bounded to a class constructor !"
             );
         }
 
-        return $this->params[$name];
+        if (empty($value)) {
+            // validate that the $name is a valid class path
+            if (!is_string($name) || !class_exists($name)) {
+                throw new ContainerException(
+                    "Only class path can be passed as single parameters !"
+                );
+            }
+            
+            $value = $name;
+        }
+
+        $this->params[array_key_last($this->dependencies)][$name] = $value;
+
+        return $this;
     }
 
     /**
      * Bind a method to a definition.
      * 
      * @param string $name
-     * @param mixed $values
+     * @param mixed $args
      * @return self
      */
-    public function setMethod($name, $values)
+    public function setMethod($name, $args)
     {   
         if (empty($this->dependencies) ||
-            !class_exists(array_key_last($this->dependencies))
+            !class_exists(end($this->dependencies))
         ) {
             throw new ContainerException(
                 "The method \"{$name}\" should be bounded to a class !"
             );
         }
         
-        $this->methods[array_key_last($this->dependencies)][$name] = $values;
+        $this->methods[array_key_last($this->dependencies)][$name] = $args;
 
         return $this;       
+    }
+
+    /**
+     * Set a constant value in the container.
+     * 
+     * @param string $name
+     * @param mixed $value
+     * @return self
+     */
+    public function setValue($name, $value)
+    {
+        $this->values[$name] = $value;
+    }
+
+    /**
+     * Get a constant value from in the container.
+     * 
+     * @param string $name
+     * @return mixed
+     */
+    public function getValue($name)
+    {
+        if (!in_array($name, array_keys($this->values))) {
+            throw new NotFoundException(
+                "The constant value \"{$name}\" is not found in the container !"
+            );
+        }
+
+        return $this->values[$name];
     }
 }
