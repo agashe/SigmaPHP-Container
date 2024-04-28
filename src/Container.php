@@ -326,7 +326,7 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @param mixed $args
      * @return self
      */
-    public function setMethod($name, $args)
+    public function setMethod($name, $args = [])
     {   
         if (empty($this->dependencies) ||
             !class_exists(end($this->dependencies))

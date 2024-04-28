@@ -36,6 +36,18 @@ class Log
         $this->name = $name;
         $this->email = $email;
     }
+    
+    /**
+     * Default mailer service, and admin info.
+     * 
+     * @return void
+     */
+    public function defaultParameters()
+    {
+        $this->mailer = new Mailer();
+        $this->name = 'default_admin';
+        $this->email = 'default_admin@example.com';
+    }
 
     /**
      * Send alert to admin.

@@ -811,9 +811,9 @@ class ContainerTest extends TestCase
             $container->get(LogExample::class)
         );
 
-        $notificationService = $container->get(LogExample::class);
+        $logService = $container->get(LogExample::class);
         
-        $notificationService->sendAlert();
+        $logService->sendAlert();
 
         $this->expectOutputString(
             "The message (Alert to : \"admin1\") was " . 
@@ -882,6 +882,34 @@ class ContainerTest extends TestCase
         $this->expectOutputString(
             "The message (Notification to : \"ali\") was " . 
             "sent to : ali@example.com\n"
+        );
+    }
+    
+    /**
+     * Test container can inject method with no arguments.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectMethodWithNoArguments()
+    {   
+        $container = new Container();
+
+        $container->set(LogExample::class)
+            ->setMethod('defaultParameters');
+
+        $this->assertInstanceOf(
+            LogExample::class,
+            $container->get(LogExample::class)
+        );
+
+        $logService = $container->get(LogExample::class);
+        
+        $logService->sendAlert();
+
+        $this->expectOutputString(
+            "The message (Alert to : \"default_admin\") was " . 
+            "sent to : default_admin@example.com\n"
         );
     }
 }
