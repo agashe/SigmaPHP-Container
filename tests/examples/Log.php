@@ -23,6 +23,15 @@ class Log
     protected $mailer;
 
     /**
+     * Log Constructor
+     */
+    public function __construct()
+    {
+        $this->name = '';
+        $this->email = '';
+    }
+
+    /**
      * Set mailer service, and the responsible admin.
      * 
      * @param Mailer $mailer

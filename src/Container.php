@@ -47,9 +47,9 @@ class Container implements PsrContainerInterface , ContainerInterface
             );
         }
 
-        // in case of objects , we save the object for future use
-        // this is like a cache mechanism , instead of creating 
-        // a new instance every time !
+        // in case of class path , we create a new instance then we save
+        // the object for future use this is like a cache mechanism 
+        // instead of creating a new instance every time !
         if (is_string($this->dependencies[$id])) {
             $class = new \ReflectionClass($this->dependencies[$id]);
             $constructor = $class->getConstructor();
@@ -138,7 +138,6 @@ class Container implements PsrContainerInterface , ContainerInterface
                                     ) {
                                         $methodArgs[] = $this->get($dependency);
                                     } else {
-                                        // !! Must Be Refactored !!
                                         $methodArg = $args[$parameter->name];
 
                                         if (is_callable($methodArg) &&
