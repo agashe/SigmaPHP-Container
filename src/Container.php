@@ -34,6 +34,33 @@ class Container implements PsrContainerInterface , ContainerInterface
     protected $values = [];
 
     /**
+     * Container Constructor.
+     * 
+     * @param array $definitions 
+     */
+    public function __construct($definitions = []) {
+        foreach ($definitions as $id => $definition) {
+            if (is_array($definition)) {
+                $this->set($id, $definition['definition']);
+
+                if (isset($definition['params'])) {
+                    foreach ($definition['params'] as $name => $value) {
+                        $this->setParam($name, $value);
+                    }
+                }
+
+                if (isset($definition['methods'])) {
+                    foreach ($definition['methods'] as $name => $args) {
+                        $this->setMethod($name, $args);
+                    }
+                }
+            } else {
+                $this->set($id, $definition);
+            }
+        }
+    }
+
+    /**
      * Get an instance for a definition from the container.
      * 
      * @param string $id

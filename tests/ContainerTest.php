@@ -912,4 +912,131 @@ class ContainerTest extends TestCase
             "sent to : default_admin@example.com\n"
         );
     }
+
+    /**
+     * Test container can add definitions through constructor.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanAddDefinitionsThroughConstructor()
+    {   
+        $container = new Container([
+            'mailer' => MailerExample::class
+        ]);
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $container->get('mailer')
+        );
+    }
+    
+    /**
+     * Test container constructor definitions accept objects.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerConstructorDefinitionsAcceptObjects()
+    {   
+        $container = new Container([
+            'mailer' => (new MailerExample())
+        ]);
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $container->get('mailer')
+        );
+    }
+    
+    /**
+     * Test container constructor definitions accept factories (closures).
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerConstructorDefinitionsAcceptFactories()
+    {   
+        $container = new Container([
+            'mailer' => function () {
+                return new MailerExample();
+            }
+        ]);
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $container->get('mailer')
+        );
+    }
+    
+    /**
+     * Test container can bind parameters through constructor.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanBindParametersThroughConstructor()
+    {   
+        $container = new Container([
+            MailerExample::class => MailerExample::class,
+            'admin' => [
+                'definition' => AdminExample::class,
+                'params' => [
+                    'name' => 'admin',
+                    'email' => 'admin@example.com'
+                ]
+            ]
+        ]);
+
+        $this->assertInstanceOf(
+            AdminExample::class,
+            $container->get('admin')
+        );
+
+        $admin = $container->get('admin');
+        
+        $admin->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message (Hello \"admin\") was " . 
+            "sent to : admin@example.com\n"
+        );
+    }
+    
+    /**
+     * Test container can bind methods through constructor.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanBindMethodsThroughConstructor()
+    {   
+        $container = new Container([
+            MailerExample::class => MailerExample::class,
+            LogExample::class => [
+                'definition' => LogExample::class,
+                'methods' => [
+                    'setMailerAndAdmin' => [
+                        'mailer' => MailerExample::class,
+                        'name' => 'admin1', 
+                        'email' => 'admin1@example.com'
+                    ]
+                ]
+            ]
+        ]);
+
+        $this->assertInstanceOf(
+            LogExample::class,
+            $container->get(LogExample::class)
+        );
+
+        $logService = $container->get(LogExample::class);
+        
+        $logService->sendAlert();
+
+        $this->expectOutputString(
+            "The message (Alert to : \"admin1\") was " . 
+            "sent to : admin1@example.com\n"
+        );
+    }
 }
