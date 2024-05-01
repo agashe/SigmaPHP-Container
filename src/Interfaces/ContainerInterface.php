@@ -50,4 +50,12 @@ interface ContainerInterface
      * @return mixed
      */
     public function getValue($name);
+
+    /**
+     * Register a service provider.
+     * 
+     * @param string $provider
+     * @return void
+     */
+    public function registerProvider($provider);
 }

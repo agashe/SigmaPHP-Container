@@ -2,9 +2,9 @@
 
 namespace SigmaPHP\Container;
 
-use Closure;
-use SigmaPHP\Container\Interfaces\ContainerInterface;
 use Psr\Container\ContainerInterface as PsrContainerInterface;
+use SigmaPHP\Container\Interfaces\ContainerInterface;
+use SigmaPHP\Container\Interfaces\ProviderInterface;
 use SigmaPHP\Container\Exceptions\ContainerException;
 use SigmaPHP\Container\Exceptions\NotFoundException;
 
@@ -32,6 +32,26 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @var array $values 
      */
     protected $values = [];
+
+    /**
+     * @var array $providers 
+     */
+    protected $providers = [];
+    
+    /**
+     * @var bool $providersAreRegistered 
+     */
+    protected $providersAreRegistered = false;
+
+    /**
+     * @var bool $providersAreBooted 
+     */
+    protected $providersAreBooted = false;
+    
+    /**
+     * @var bool $isBootingProviders 
+     */
+    protected $isBootingProviders = false;
 
     /**
      * Container Constructor.
@@ -68,6 +88,16 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function get($id)
     {
+        // register providers , if not registered yet
+        if (!$this->providersAreRegistered) {
+            foreach ($this->providers as $provider) {
+                $serviceProvider = new ('\\' . $provider);
+                $serviceProvider->register($this);
+            }
+
+            $this->providersAreRegistered = true;
+        }
+
         if (!$this->has($id)) {
             throw new NotFoundException(
                 "The id \"{$id}\" is not found in the container !"
@@ -209,6 +239,28 @@ class Container implements PsrContainerInterface , ContainerInterface
         }
         
         $definition = $this->dependencies[$id];
+
+        // boot service providers
+        if ($this->providersAreRegistered && 
+            !$this->providersAreBooted && 
+            !$this->isBootingProviders
+        ) {
+            foreach ($this->providers as $provider) {
+                $serviceProvider = new ('\\' . $provider);
+
+                // we implement some kind of locking mechanism  
+                // so the booting function never get caught
+                // in infinite recursion !!
+
+                $this->isBootingProviders = true;
+
+                $serviceProvider->boot($this);
+                
+                $this->isBootingProviders = false;
+            }
+
+            $this->providersAreBooted = true;
+        }
 
         if (is_callable($definition) && ($definition instanceof \Closure)) {
             // check if factory accept the container as a parameter
@@ -394,5 +446,38 @@ class Container implements PsrContainerInterface , ContainerInterface
         }
 
         return $this->values[$name];
+    }
+
+    /**
+     * Register a service provider.
+     * 
+     * @param string $provider
+     * @return void
+     */
+    public function registerProvider($provider)
+    {
+        // the provider should be a valid class , and MUST implement
+        // the service provider interface
+        if (!is_string($provider) ||
+            empty($provider) ||
+            !class_exists($provider)
+        ) {
+            throw new ContainerException(
+                "Invalid provider , service provider should be a valid class !"
+            );
+        }
+
+        $interfaces = class_implements($provider);
+
+        if (empty($interfaces) ||
+            !in_array(ProviderInterface::class, $interfaces)
+        ) {
+            throw new ContainerException(
+                "Invalid provider , service provider " . 
+                "should MUST implement ProviderInterface!"
+            );
+        }
+
+        $this->providers[] = $provider;
     }
 }

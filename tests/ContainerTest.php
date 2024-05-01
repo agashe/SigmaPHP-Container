@@ -12,6 +12,14 @@ use SigmaPHP\Container\Tests\Examples\User as UserExample;
 use SigmaPHP\Container\Tests\Examples\Admin as AdminExample;
 use SigmaPHP\Container\Tests\Examples\Notification as NotificationExample;
 use SigmaPHP\Container\Tests\Examples\Log as LogExample;
+use SigmaPHP\Container\Tests\Examples\MailerServiceProvider
+    as MailerExampleProvider;
+use SigmaPHP\Container\Tests\Examples\InvalidServiceProvider
+    as InvalidServiceProviderExample;
+use SigmaPHP\Container\Tests\Examples\UserServiceProvider
+    as UserExampleProvider;
+use SigmaPHP\Container\Tests\Examples\LogServiceProvider
+    as LogExampleProvider;
 
 /**
  * Container Test
@@ -40,7 +48,7 @@ class ContainerTest extends TestCase
         $objectReflection = new \ReflectionClass($object);
         $propertyReflection = $objectReflection->getProperty($property);
         $propertyReflection->setAccessible(true);
-        
+
         return $propertyReflection->getValue($object);
     }
 
@@ -51,20 +59,20 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanSaveDefinitions()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', MailerExample::class);
 
         // get private dependencies array
         $dependencies = $this->getPrivatePropertyValue(
-            $container, 
+            $container,
             'dependencies'
         );
 
         $this->assertEquals(MailerExample::class, $dependencies['mailer']);
     }
-    
+
     /**
      * Test container can save definitions with single parameter.
      *
@@ -72,14 +80,14 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanSaveDefinitionsWithSingleParameter()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class);
 
         // get private dependencies array
         $dependencies = $this->getPrivatePropertyValue(
-            $container, 
+            $container,
             'dependencies'
         );
 
@@ -88,7 +96,7 @@ class ContainerTest extends TestCase
             $dependencies[MailerExample::class]
         );
     }
-    
+
     /**
      * Test container can throw exception if the single parameter definition
      * is invalid - not a class path.
@@ -97,7 +105,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillThrowExceptionIfInvalidSingleDefinition()
-    {   
+    {
         $this->expectException(ContainerException::class);
 
         $container = new Container();
@@ -112,7 +120,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanCheckForIdExistence()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', MailerExample::class);
@@ -127,7 +135,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanCreateNewInstanceFromADefinition()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', MailerExample::class);
@@ -137,7 +145,7 @@ class ContainerTest extends TestCase
             $container->get('mailer')
         );
     }
-    
+
     /**
      * Test container will return same instance.
      *
@@ -145,7 +153,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillReturnSameInstance()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', MailerExample::class);
@@ -155,7 +163,7 @@ class ContainerTest extends TestCase
 
         $this->assertTrue($foo === $bar);
     }
-    
+
     /**
      * Test container will throw exception if id is not found.
      *
@@ -163,7 +171,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillThrowExceptionIfIdIsNotFound()
-    {   
+    {
         $this->expectException(NotFoundException::class);
 
         $container = new Container();
@@ -177,9 +185,9 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillThrowExceptionForInvalidIdOrDefinition()
-    {     
+    {
         $container = new Container();
-        
+
         $invalidValues = [
             [],
             false,
@@ -192,8 +200,7 @@ class ContainerTest extends TestCase
 
         $countInvalidIds = $countInvalidDefinitions = count($invalidValues);
 
-        foreach ($invalidValues as
-         $invalidValue) {
+        foreach ($invalidValues as $invalidValue) {
             try {
                 $container->set($invalidValue, MailerExample::class);
             } catch (\Exception $e) {
@@ -222,7 +229,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillThrowExceptionIfClassIsNotFound()
-    {   
+    {
         $this->expectException(ContainerException::class);
 
         $container = new Container();
@@ -236,7 +243,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptClassPathAsId()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class, MailerExample::class);
@@ -254,7 +261,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptInterfacesAsId()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExampleInterface::class, MailerExample::class);
@@ -272,7 +279,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptClassPathAsDefinition()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', MailerExample::class);
@@ -290,7 +297,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptFactoryAsDefinition()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', function () {
@@ -302,7 +309,7 @@ class ContainerTest extends TestCase
             $container->get('mailer')
         );
     }
-    
+
     /**
      * Test container can accept arrow functions as definition.
      *
@@ -310,14 +317,14 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptArrowFunctionsAsDefinition()
-    {   
+    {
         $container = new Container();
 
         $container->set('a_number', (fn() => 101 ));
 
         $this->assertEquals(101, $container->get('a_number'));
     }
-    
+
     /**
      * Test container can accept object as definition.
      *
@@ -325,7 +332,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptObjectAsDefinition()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', (new MailerExample()));
@@ -335,7 +342,7 @@ class ContainerTest extends TestCase
             $container->get('mailer')
         );
     }
-    
+
     /**
      * Test container can accept invocable class as definition.
      *
@@ -343,7 +350,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptInvocableClassAsDefinition()
-    {   
+    {
         $container = new Container();
 
         $container->set(GreeterExample::class, (new GreeterExample()));
@@ -353,7 +360,7 @@ class ContainerTest extends TestCase
             $container->get(GreeterExample::class)
         );
     }
-    
+
     /**
      * Test container can accept anonymous class as definition.
      *
@@ -361,14 +368,14 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAcceptAnonymousClassAsDefinition()
-    {   
+    {
         $container = new Container();
 
         $container->set('anonymous', (new class () {}));
 
         $this->assertTrue(is_object($container->get('anonymous')));
     }
-    
+
     /**
      * Test container can define parameters.
      *
@@ -376,7 +383,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanDefineParameters()
-    {   
+    {
         $container = new Container();
 
         $container->set('mailer', MailerExample::class)
@@ -395,7 +402,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanDefineSingleParametersForClassesPath()
-    {   
+    {
         $container = new Container();
 
         $container->set(UserExample::class)
@@ -418,7 +425,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillThrowExceptionIfParameterNotBounded()
-    {   
+    {
         $this->expectException(ContainerException::class);
 
         $container = new Container();
@@ -434,7 +441,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillThrowExceptionIfInvalidSingleParameter()
-    {   
+    {
         $this->expectException(ContainerException::class);
 
         $container = new Container();
@@ -450,7 +457,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanBindPrimitiveParametersToDefinitions()
-    {   
+    {
         $container = new Container();
 
         // parameters order has no effect
@@ -466,11 +473,11 @@ class ContainerTest extends TestCase
 
         $width = $this->getPrivatePropertyValue($box, 'width');
         $this->assertEquals(20, $width);
-        
+
         $length = $this->getPrivatePropertyValue($box, 'length');
         $this->assertEquals(10, $length);
     }
-    
+
     /**
      * Test primitive parameters default values are working.
      *
@@ -478,7 +485,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testPrimitiveParametersDefaultValuesAreWorking()
-    {   
+    {
         $container = new Container();
 
         // parameters order has no effect
@@ -493,11 +500,11 @@ class ContainerTest extends TestCase
 
         $width = $this->getPrivatePropertyValue($box, 'width');
         $this->assertEquals(20, $width);
-        
+
         $length = $this->getPrivatePropertyValue($box, 'length');
         $this->assertEquals(50, $length);
     }
-    
+
     /**
      * Test container can inject classes.
      *
@@ -505,7 +512,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectClasses()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class, MailerExample::class);
@@ -518,17 +525,17 @@ class ContainerTest extends TestCase
         );
 
         $user = $container->get(UserExample::class);
-        
+
         $user->name = 'ahmed';
         $user->email = 'ahmed@eample.com';
-        
+
         $user->sendWelcomeMail();
 
         $this->expectOutputString(
             "The message (Hello \"ahmed\") was sent to : ahmed@eample.com\n"
         );
     }
-    
+
     /**
      * Test container can inject both classes and primitives.
      *
@@ -536,7 +543,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectClassesAndPrimitives()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class, MailerExample::class);
@@ -551,7 +558,7 @@ class ContainerTest extends TestCase
         );
 
         $admin = $container->get(AdminExample::class);
-        
+
         $admin->sendWelcomeMail();
 
         $this->expectOutputString(
@@ -566,7 +573,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectClassesAsAParameterWithName()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class, MailerExample::class);
@@ -581,7 +588,7 @@ class ContainerTest extends TestCase
         );
 
         $admin = $container->get(AdminExample::class);
-        
+
         $admin->sendWelcomeMail();
 
         $this->expectOutputString(
@@ -596,7 +603,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectObjectsAsParameter()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class);
@@ -611,14 +618,14 @@ class ContainerTest extends TestCase
         );
 
         $admin = $container->get(AdminExample::class);
-        
+
         $admin->sendWelcomeMail();
 
         $this->expectOutputString(
             "The message (Hello \"admin\") was sent to : admin@example.com\n"
         );
     }
-    
+
     /**
      * Test container can inject factories as parameter.
      *
@@ -626,7 +633,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectFactoriesAsParameter()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class);
@@ -643,7 +650,7 @@ class ContainerTest extends TestCase
         );
 
         $admin = $container->get(AdminExample::class);
-        
+
         $admin->sendWelcomeMail();
 
         $this->expectOutputString(
@@ -658,7 +665,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testFactoryCanAccessCurrentContainer()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class, MailerExample::class);
@@ -677,11 +684,11 @@ class ContainerTest extends TestCase
         );
 
         $superAdmin = $container->get('super_admin');
-        
+
         $superAdmin->sendWelcomeMail();
 
         $this->expectOutputString(
-            "The message (Hello \"super_admin\") was " . 
+            "The message (Hello \"super_admin\") was " .
             "sent to : super_admin@example.com\n"
         );
     }
@@ -693,7 +700,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testArrowFunctionsFactoryCanAccessCurrentContainer()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class, MailerExample::class);
@@ -713,7 +720,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanSetGlobalValue()
-    {   
+    {
         $container = new Container();
 
         $container->setValue('db_name', 'test');
@@ -723,7 +730,7 @@ class ContainerTest extends TestCase
 
         $this->assertEquals('test', $values['db_name']);
     }
-    
+
     /**
      * Test container can get global value.
      *
@@ -731,7 +738,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanGetGlobalValue()
-    {   
+    {
         $container = new Container();
 
         $container->setValue('db_name', 'test');
@@ -746,13 +753,13 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerWillThrowExceptionIfGlobalValueIsNotFound()
-    {   
+    {
         $this->expectException(NotFoundException::class);
 
         $container = new Container();
         $container->getValue('unknown');
     }
-        
+
     /**
      * Test container can inject setter method.
      *
@@ -760,7 +767,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectSetterMethod()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class);
@@ -775,15 +782,15 @@ class ContainerTest extends TestCase
         );
 
         $notificationService = $container->get(NotificationExample::class);
-        
+
         $notificationService->pushMessage('ali', 'ali@example.com');
 
         $this->expectOutputString(
-            "The message (Notification to : \"ali\") was " . 
+            "The message (Notification to : \"ali\") was " .
             "sent to : ali@example.com\n"
         );
     }
-    
+
     /**
      * Test container can inject setter method with primitive parameters.
      *
@@ -791,7 +798,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectSetterMethodWithPrimitiveParameters()
-    {   
+    {
         $container = new Container();
 
         $container->setValue('admin_name', 'admin1');
@@ -802,7 +809,7 @@ class ContainerTest extends TestCase
         $container->set(LogExample::class)
             ->setMethod('setMailerAndAdmin', [
                 'mailer' => MailerExample::class,
-                'name' => $container->getValue('admin_name'), 
+                'name' => $container->getValue('admin_name'),
                 'email' => $container->getValue('admin_email')
             ]);
 
@@ -812,11 +819,11 @@ class ContainerTest extends TestCase
         );
 
         $logService = $container->get(LogExample::class);
-        
+
         $logService->sendAlert();
 
         $this->expectOutputString(
-            "The message (Alert to : \"admin1\") was " . 
+            "The message (Alert to : \"admin1\") was " .
             "sent to : admin1@example.com\n"
         );
     }
@@ -828,7 +835,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectObjectsAsSetterMethod()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class);
@@ -843,15 +850,15 @@ class ContainerTest extends TestCase
         );
 
         $notificationService = $container->get(NotificationExample::class);
-        
+
         $notificationService->pushMessage('ali', 'ali@example.com');
 
         $this->expectOutputString(
-            "The message (Notification to : \"ali\") was " . 
+            "The message (Notification to : \"ali\") was " .
             "sent to : ali@example.com\n"
         );
     }
-    
+
     /**
      * Test container can inject factories as setter method.
      *
@@ -859,7 +866,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectFactoriesAsSetterMethod()
-    {   
+    {
         $container = new Container();
 
         $container->set(MailerExample::class);
@@ -876,15 +883,15 @@ class ContainerTest extends TestCase
         );
 
         $notificationService = $container->get(NotificationExample::class);
-        
+
         $notificationService->pushMessage('ali', 'ali@example.com');
 
         $this->expectOutputString(
-            "The message (Notification to : \"ali\") was " . 
+            "The message (Notification to : \"ali\") was " .
             "sent to : ali@example.com\n"
         );
     }
-    
+
     /**
      * Test container can inject method with no arguments.
      *
@@ -892,7 +899,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanInjectMethodWithNoArguments()
-    {   
+    {
         $container = new Container();
 
         $container->set(LogExample::class)
@@ -904,11 +911,11 @@ class ContainerTest extends TestCase
         );
 
         $logService = $container->get(LogExample::class);
-        
+
         $logService->sendAlert();
 
         $this->expectOutputString(
-            "The message (Alert to : \"default_admin\") was " . 
+            "The message (Alert to : \"default_admin\") was " .
             "sent to : default_admin@example.com\n"
         );
     }
@@ -920,7 +927,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanAddDefinitionsThroughConstructor()
-    {   
+    {
         $container = new Container([
             'mailer' => MailerExample::class
         ]);
@@ -930,7 +937,7 @@ class ContainerTest extends TestCase
             $container->get('mailer')
         );
     }
-    
+
     /**
      * Test container constructor definitions accept objects.
      *
@@ -938,7 +945,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerConstructorDefinitionsAcceptObjects()
-    {   
+    {
         $container = new Container([
             'mailer' => (new MailerExample())
         ]);
@@ -948,7 +955,7 @@ class ContainerTest extends TestCase
             $container->get('mailer')
         );
     }
-    
+
     /**
      * Test container constructor definitions accept factories (closures).
      *
@@ -956,7 +963,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerConstructorDefinitionsAcceptFactories()
-    {   
+    {
         $container = new Container([
             'mailer' => function () {
                 return new MailerExample();
@@ -968,7 +975,7 @@ class ContainerTest extends TestCase
             $container->get('mailer')
         );
     }
-    
+
     /**
      * Test container can bind parameters through constructor.
      *
@@ -976,7 +983,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanBindParametersThroughConstructor()
-    {   
+    {
         $container = new Container([
             MailerExample::class => MailerExample::class,
             'admin' => [
@@ -994,15 +1001,15 @@ class ContainerTest extends TestCase
         );
 
         $admin = $container->get('admin');
-        
+
         $admin->sendWelcomeMail();
 
         $this->expectOutputString(
-            "The message (Hello \"admin\") was " . 
+            "The message (Hello \"admin\") was " .
             "sent to : admin@example.com\n"
         );
     }
-    
+
     /**
      * Test container can bind methods through constructor.
      *
@@ -1010,7 +1017,7 @@ class ContainerTest extends TestCase
      * @return void
      */
     public function testContainerCanBindMethodsThroughConstructor()
-    {   
+    {
         $container = new Container([
             MailerExample::class => MailerExample::class,
             LogExample::class => [
@@ -1018,7 +1025,7 @@ class ContainerTest extends TestCase
                 'methods' => [
                     'setMailerAndAdmin' => [
                         'mailer' => MailerExample::class,
-                        'name' => 'admin1', 
+                        'name' => 'admin1',
                         'email' => 'admin1@example.com'
                     ]
                 ]
@@ -1031,12 +1038,148 @@ class ContainerTest extends TestCase
         );
 
         $logService = $container->get(LogExample::class);
-        
+
         $logService->sendAlert();
 
         $this->expectOutputString(
-            "The message (Alert to : \"admin1\") was " . 
+            "The message (Alert to : \"admin1\") was " .
             "sent to : admin1@example.com\n"
+        );
+    }
+
+    /**
+     * Test container can register providers.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanRegisterProviders()
+    {
+        $container = new Container();
+
+        $container->registerProvider(MailerExampleProvider::class);
+
+        // get private providers array
+        $providers = $this->getPrivatePropertyValue($container, 'providers');
+
+        $this->assertTrue(in_array(MailerExampleProvider::class, $providers));
+    }
+
+    /**
+     * Test container will throw exception for invalid providers.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionForInvalidProviders()
+    {
+        $container = new Container();
+
+        $invalidValues = [
+            [],
+            false,
+            null,
+            '',
+            123,
+            new \stdClass(),
+            fn() => true
+        ];
+
+        $countInvalidProviders = count($invalidValues);
+
+        foreach ($invalidValues as $invalidValue) {
+            try {
+                $container->registerProvider($invalidValue);
+            } catch (\Exception $e) {
+                if ($e instanceof ContainerException) {
+                    $countInvalidProviders -= 1;
+                }
+            }
+        }
+
+        $this->assertEquals(0, $countInvalidProviders);
+    }
+
+    /**
+     * Test container will throw exception for a provider that doesn't
+     * implement the \ProviderInterface.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testExceptionForProvidersDoesNotImplementInterface()
+    {
+        $this->expectException(ContainerException::class);
+
+        $container = new Container();
+
+        $container->registerProvider(InvalidServiceProviderExample::class);
+    }
+
+    /**
+     * Test container can inject dependencies using providers.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectDependenciesUsingProviders()
+    {
+        $container = new Container();
+
+        $container->registerProvider(MailerExampleProvider::class);
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $container->get(MailerExample::class)
+        );
+    }
+
+    /**
+     * Test providers will be booted once registered.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testProvidersWillBeBootedOnceRegistered()
+    {
+        $container = new Container();
+
+        $container->registerProvider(UserExampleProvider::class);
+
+        $this->assertInstanceOf(
+            UserExample::class,
+            $container->get(UserExample::class)
+        );
+
+        $this->expectOutputString(
+            "The message (Hello \"mohamed\") was sent to : mohamed@eample.com\n"
+        );
+    }
+
+    /**
+     * Test providers can inject setter method with primitive parameters.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testProvidersCanInjectSetterMethodWithPrimitiveParameters()
+    {
+        $container = new Container();
+
+        $container->setValue('admin_name', 'admin2');
+        $container->setValue('admin_email', 'admin2@example.com');
+
+        $container->set(MailerExample::class);
+        $container->registerProvider(LogExampleProvider::class);
+
+        $this->assertInstanceOf(
+            LogExample::class,
+            $container->get(LogExample::class)
+        );
+
+        $this->expectOutputString(
+            "The message (Alert to : \"admin2\") was " .
+            "sent to : admin2@example.com\n"
         );
     }
 }
