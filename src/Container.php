@@ -88,17 +88,14 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function get($id)
     {
-        // register providers , if not registered yet
-        if (!$this->providersAreRegistered) {
-            foreach ($this->providers as $provider) {
-                $serviceProvider = new ('\\' . $provider);
-                $serviceProvider->register($this);
-            }
-
-            $this->providersAreRegistered = true;
-        }
+        $this->registerProviders();
 
         if (!$this->has($id)) {
+            // in case of a PHP built in class
+            if (class_exists($id)) {
+                return new ('\\' . $id);
+            }
+
             throw new NotFoundException(
                 "The id \"{$id}\" is not found in the container !"
             );
@@ -107,132 +104,15 @@ class Container implements PsrContainerInterface , ContainerInterface
         // in case of class path , we create a new instance then we save
         // the object for future use this is like a cache mechanism 
         // instead of creating a new instance every time !
-        if (is_string($this->dependencies[$id])) {
-            $class = new \ReflectionClass($this->dependencies[$id]);
-            $constructor = $class->getConstructor();
-            $instance = null;
+        if (is_string($this->dependencies[$id]) &&
+            class_exists($this->dependencies[$id])
+        ) {
+            $instance = $this->createInstance($id);
 
-            $dependencyParams = isset($this->params[$id]) ?
-                $this->params[$id] : [];
-
-            if ($constructor !== null) {
-                $constructorParams = [];
-                
-                // loop throw all args , and inject dependencies
-                foreach ($constructor->getParameters() as $parameter) {
-                    // check if parameter is a primitive or a class !!
-                    if ($parameter->getType() !== null) {
-                        $dependency = $parameter->getType()->getName();
-                        
-                        if (isset($dependencyParams[$parameter->name])) {
-                            if (is_string(
-                                    $dependencyParams[$parameter->name]
-                                ) &&
-                                class_exists(
-                                    $dependencyParams[$parameter->name]
-                                )
-                            ) {
-                                $constructorParams[] = $this->get($dependency);
-                            } else {
-                                $dependencyParam = 
-                                    $dependencyParams[$parameter->name];
-
-                                if (is_callable($dependencyParam) &&
-                                    ($dependencyParam instanceof \Closure)
-                                ) {
-                                    // check if factory accept the container 
-                                    // as a parameter
-                                    $function = new \ReflectionFunction(
-                                        $dependencyParam
-                                    );
-                                    
-                                    if ($function->getParameters() !== null) {
-                                        $result = $dependencyParam($this);
-                                    } else {
-                                        $result = $dependencyParam();
-                                    }
-                        
-                                    $constructorParams[] = $result;
-                                } else {
-                                    $constructorParams[] = 
-                                        $dependencyParams[$parameter->name];
-                                }
-                            }
-                        } else {
-                            $constructorParams[] = $this->get($dependency);
-                        }
-                    } else {
-                        if (isset($dependencyParams[$parameter->name])) {
-                            $constructorParams[] = 
-                                $dependencyParams[$parameter->name];
-                        }
-                    }
-                }
-
-                $instance = $class->newInstanceArgs($constructorParams);
-            } else {
-                $instance = $class->newInstance();
-            }
-
-            // call any setter methods related to the definition
             if (isset($this->methods[$id]) && 
                 (count($this->methods[$id]) > 0)
             ) {
-                foreach ($this->methods[$id] as $name => $args) {
-                    $method = new \ReflectionMethod($id, $name);
-                    
-                    if ($method->getParameters() !== null) {
-                        $methodArgs = [];
-
-                        foreach ($method->getParameters() as $parameter) {
-                            // check if parameter is a primitive or a class !!
-                            if ($parameter->getType() !== null) {
-                                $dependency = $parameter->getType()->getName();
-                                
-                                if (isset($args[$parameter->name])) {
-                                    if (is_string($args[$parameter->name]) &&
-                                        class_exists($args[$parameter->name])
-                                    ) {
-                                        $methodArgs[] = $this->get($dependency);
-                                    } else {
-                                        $methodArg = $args[$parameter->name];
-
-                                        if (is_callable($methodArg) &&
-                                            ($methodArg instanceof \Closure)
-                                        ) {
-                                            // check if factory accept the  
-                                            // container as a parameter
-                                            $function = new \ReflectionFunction(
-                                                $methodArg
-                                            );
-                                            
-                                            if ($function->getParameters() 
-                                                !== null
-                                            ) {
-                                                $result = $methodArg($this);
-                                            } else {
-                                                $result = $methodArg();
-                                            }
-                                
-                                            $methodArgs[] = $result;
-                                        } else {
-                                            $methodArgs[] =
-                                                $args[$parameter->name];
-                                        }
-                                    }
-                                }
-                            } else {
-                                if (isset($args[$parameter->name])) {
-                                    $methodArgs[] = $args[$parameter->name];
-                                }
-                            }
-                        }
-
-                        $method->invoke($instance, ...$methodArgs);
-                    } else {
-                        $method->invoke($instance);
-                    }
-                }
+                $this->callInstanceSetters($id, $instance);
             }
 
             $this->dependencies[$id] = $instance;
@@ -240,27 +120,7 @@ class Container implements PsrContainerInterface , ContainerInterface
         
         $definition = $this->dependencies[$id];
 
-        // boot service providers
-        if ($this->providersAreRegistered && 
-            !$this->providersAreBooted && 
-            !$this->isBootingProviders
-        ) {
-            foreach ($this->providers as $provider) {
-                $serviceProvider = new ('\\' . $provider);
-
-                // we implement some kind of locking mechanism  
-                // so the booting function never get caught
-                // in infinite recursion !!
-
-                $this->isBootingProviders = true;
-
-                $serviceProvider->boot($this);
-                
-                $this->isBootingProviders = false;
-            }
-
-            $this->providersAreBooted = true;
-        }
+        $this->bootProviders();
 
         if (is_callable($definition) && ($definition instanceof \Closure)) {
             // check if factory accept the container as a parameter
@@ -308,59 +168,6 @@ class Container implements PsrContainerInterface , ContainerInterface
         $this->dependencies[$id] = $definition;
         
         return $this;
-    }
-
-    /**
-     * Check that the id is valid.
-     * 
-     * We have 3 valid types of ids so far :
-     * - class path (e.g, Mailer::class) 
-     * - interface path (e.g, MailerInterface::class) 
-     * - string alias (e.g, 'mailer') 
-     * 
-     * @param string $id
-     * @return void
-     */
-    protected function validateId($id)
-    {
-        if (!is_string($id) || empty($id)) {
-            throw new ContainerException(
-                "Invalid id. Id can only accept string values !"
-            );
-        }
-    }
-
-    /**
-     * Check that the definition is valid.
-     * 
-     * We have 3 valid types of definitions so far :
-     * - class path (e.g, Mailer::class) 
-     * - callback functions "factories" (e.g, fn() => {...}) 
-     * - objects (e.g, new Mailer()) 
-     * 
-     * @param string $definition
-     * @return void
-     */
-    protected function validateDefinition($definition)
-    { 
-        $invalid = false;
-
-        if (is_string($definition)) {
-            if (empty($definition) || !class_exists('\\' . $definition)) {
-                $invalid = true;
-            }
-        } else {
-            if (!is_callable($definition) && !is_object($definition)) {
-                $invalid = true;
-            }
-        }
-        
-        if ($invalid) {
-            throw new ContainerException(
-                "Invalid definition : " .
-                "only classes , objects and callbacks are accepted !"
-            );
-        }
     }
 
     /**
@@ -479,5 +286,249 @@ class Container implements PsrContainerInterface , ContainerInterface
         }
 
         $this->providers[] = $provider;
+    }
+
+    /**
+     * Check that the id is valid.
+     * 
+     * We have 3 valid types of ids so far :
+     * - class path (e.g, Mailer::class) 
+     * - interface path (e.g, MailerInterface::class) 
+     * - string alias (e.g, 'mailer') 
+     * 
+     * @param string $id
+     * @return void
+     */
+    protected function validateId($id)
+    {
+        if (!is_string($id) || empty($id)) {
+            throw new ContainerException(
+                "Invalid id. Id can only accept string values !"
+            );
+        }
+    }
+
+    /**
+     * Check that the definition is valid.
+     * 
+     * We have 3 valid types of definitions so far :
+     * - class path (e.g, Mailer::class) 
+     * - callback functions "factories" (e.g, fn() => {...}) 
+     * - objects (e.g, new Mailer()) 
+     * 
+     * @param string $definition
+     * @return void
+     */
+    protected function validateDefinition($definition)
+    { 
+        $invalid = false;
+
+        if (is_string($definition)) {
+            if (empty($definition) || !class_exists('\\' . $definition)) {
+                $invalid = true;
+            }
+        } else {
+            if (!is_callable($definition) && !is_object($definition)) {
+                $invalid = true;
+            }
+        }
+        
+        if ($invalid) {
+            throw new ContainerException(
+                "Invalid definition : " .
+                "only classes , objects and callbacks are accepted !"
+            );
+        }
+    }
+
+    /**
+     * Register service providers.
+     * 
+     * @return void
+     */
+    protected function registerProviders()
+    {
+        if (!$this->providersAreRegistered) {
+            foreach ($this->providers as $provider) {
+                $serviceProvider = new ('\\' . $provider);
+                $serviceProvider->register($this);
+            }
+
+            $this->providersAreRegistered = true;
+        }
+    }
+    
+    /**
+     * Boot service providers.
+     * 
+     * @return void
+     */
+    protected function bootProviders()
+    {
+        if ($this->providersAreRegistered && 
+            !$this->providersAreBooted && 
+            !$this->isBootingProviders
+        ) {
+            foreach ($this->providers as $provider) {
+                $serviceProvider = new ('\\' . $provider);
+
+                // we implement some kind of locking mechanism  
+                // so the booting function never get caught
+                // in infinite recursion !!
+
+                $this->isBootingProviders = true;
+
+                $serviceProvider->boot($this);
+                
+                $this->isBootingProviders = false;
+            }
+
+            $this->providersAreBooted = true;
+        }        
+    }
+    
+    /**
+     * Create new instance from a class.
+     * 
+     * @param string $id
+     * @return mixed
+     */
+    protected function createInstance($id)
+    {
+        $class = new \ReflectionClass($this->dependencies[$id]);
+        $constructor = $class->getConstructor();
+        $instance = null;
+
+        $dependencyParams = isset($this->params[$id]) ?
+            $this->params[$id] : [];
+
+        if ($constructor !== null) {
+            $constructorParams = [];
+            
+            // loop throw all args , and inject dependencies
+            foreach ($constructor->getParameters() as $parameter) {
+                // check if parameter is a primitive or a class !!
+                if ($parameter->getType() !== null) {
+                    $dependency = $parameter->getType()->getName();
+                    
+                    if (isset($dependencyParams[$parameter->name])) {
+                        if (is_string(
+                                $dependencyParams[$parameter->name]
+                            ) &&
+                            class_exists(
+                                $dependencyParams[$parameter->name]
+                            )
+                        ) {
+                            $constructorParams[] = $this->get($dependency);
+                        } else {
+                            $dependencyParam = 
+                                $dependencyParams[$parameter->name];
+
+                            if (is_callable($dependencyParam) &&
+                                ($dependencyParam instanceof \Closure)
+                            ) {
+                                // check if factory accept the container 
+                                // as a parameter
+                                $function = new \ReflectionFunction(
+                                    $dependencyParam
+                                );
+                                
+                                if ($function->getParameters() !== null) {
+                                    $result = $dependencyParam($this);
+                                } else {
+                                    $result = $dependencyParam();
+                                }
+                    
+                                $constructorParams[] = $result;
+                            } else {
+                                $constructorParams[] = 
+                                    $dependencyParams[$parameter->name];
+                            }
+                        }
+                    } else {
+                        $constructorParams[] = $this->get($dependency);
+                    }
+                } else {
+                    if (isset($dependencyParams[$parameter->name])) {
+                        $constructorParams[] = 
+                            $dependencyParams[$parameter->name];
+                    }
+                }
+            }
+
+            $instance = $class->newInstanceArgs($constructorParams);
+        } else {
+            $instance = $class->newInstance();
+        }
+
+        return $instance;
+    }
+
+    /**
+     * Create new instance from a class.
+     * 
+     * @param string $id
+     * @param mixed $instance
+     * @return mixed
+     */
+    protected function callInstanceSetters($id, $instance)
+    {
+        foreach ($this->methods[$id] as $name => $args) {
+            $method = new \ReflectionMethod($this->dependencies[$id], $name);
+            
+            if ($method->getParameters() !== null) {
+                $methodArgs = [];
+    
+                foreach ($method->getParameters() as $parameter) {
+                    // check if parameter is a primitive or a class !!
+                    if ($parameter->getType() !== null) {
+                        $dependency = $parameter->getType()->getName();
+                        
+                        if (isset($args[$parameter->name])) {
+                            if (is_string($args[$parameter->name]) &&
+                                class_exists($args[$parameter->name])
+                            ) {
+                                $methodArgs[] = $this->get($dependency);
+                            } else {
+                                $methodArg = $args[$parameter->name];
+    
+                                if (is_callable($methodArg) &&
+                                    ($methodArg instanceof \Closure)
+                                ) {
+                                    // check if factory accept the  
+                                    // container as a parameter
+                                    $function = new \ReflectionFunction(
+                                        $methodArg
+                                    );
+                                    
+                                    if ($function->getParameters() 
+                                        !== null
+                                    ) {
+                                        $result = $methodArg($this);
+                                    } else {
+                                        $result = $methodArg();
+                                    }
+                        
+                                    $methodArgs[] = $result;
+                                } else {
+                                    $methodArgs[] =
+                                        $args[$parameter->name];
+                                }
+                            }
+                        } else {
+                            $methodArgs[] = $this->get($dependency);
+                        }
+                    } else {
+                        if (isset($args[$parameter->name])) {
+                            $methodArgs[] = $args[$parameter->name];
+                        }
+                    }
+                }
+    
+                $method->invoke($instance, ...$methodArgs);
+            } else {
+                $method->invoke($instance);
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Util\ErrorHandler;
 use SigmaPHP\Container\Container;
 use SigmaPHP\Container\Exceptions\ContainerException;
 use SigmaPHP\Container\Exceptions\NotFoundException;
@@ -12,6 +13,7 @@ use SigmaPHP\Container\Tests\Examples\User as UserExample;
 use SigmaPHP\Container\Tests\Examples\Admin as AdminExample;
 use SigmaPHP\Container\Tests\Examples\Notification as NotificationExample;
 use SigmaPHP\Container\Tests\Examples\Log as LogExample;
+use SigmaPHP\Container\Tests\Examples\ErrorHandler as ErrorHandlerExample;
 use SigmaPHP\Container\Tests\Examples\MailerServiceProvider
     as MailerExampleProvider;
 use SigmaPHP\Container\Tests\Examples\InvalidServiceProvider
@@ -790,6 +792,34 @@ class ContainerTest extends TestCase
             "sent to : ali@example.com\n"
         );
     }
+    
+    /**
+     * Test container can inject setter method without passing parameters.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectSetterMethodWithoutPassingParameters()
+    {
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(NotificationExample::class)->setMethod('setMailer');
+
+        $this->assertInstanceOf(
+            NotificationExample::class,
+            $container->get(NotificationExample::class)
+        );
+
+        $notificationService = $container->get(NotificationExample::class);
+
+        $notificationService->pushMessage('ali', 'ali@example.com');
+
+        $this->expectOutputString(
+            "The message (Notification to : \"ali\") was " .
+            "sent to : ali@example.com\n"
+        );
+    }
 
     /**
      * Test container can inject setter method with primitive parameters.
@@ -1181,5 +1211,28 @@ class ContainerTest extends TestCase
             "The message (Alert to : \"admin2\") was " .
             "sent to : admin2@example.com\n"
         );
+    }
+    
+    /**
+     * Test container can inject PHP built in classes.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanInjectPhpBuiltInClasses()
+    {
+        $container = new Container();
+
+        $container->set(ErrorHandlerExample::class)
+            ->setParam('e', \Exception::class);
+
+        $this->assertInstanceOf(
+            ErrorHandlerExample::class,
+            $container->get(ErrorHandlerExample::class)
+        );
+
+        $container->get(ErrorHandlerExample::class)->printErrorMessage();
+
+        $this->expectOutputString("Help !! Exception\n");
     }
 }
