@@ -932,8 +932,7 @@ class ContainerTest extends TestCase
     {
         $container = new Container();
 
-        $container->set(LogExample::class)
-            ->setMethod('defaultParameters');
+        $container->set(LogExample::class)->setMethod('defaultParameters');
 
         $this->assertInstanceOf(
             LogExample::class,
