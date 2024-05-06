@@ -18,6 +18,13 @@ class LogServiceProvider implements ProviderInterface
      */
     public function boot(Container $container)
     {
+        $container->set(LogExample::class)
+            ->setMethod('setMailerAndAdmin', [
+                'mailer' => MailerExample::class,
+                'name' => $container->get('admin_name'), 
+                'email' => $container->get('admin_email')
+            ]);
+
         $logService = $container->get(LogExample::class);
 
         $logService->sendAlert();
@@ -30,12 +37,5 @@ class LogServiceProvider implements ProviderInterface
      * @return void
      */
     public function register(Container $container)
-    {
-        $container->set(LogExample::class)
-            ->setMethod('setMailerAndAdmin', [
-                'mailer' => MailerExample::class,
-                'name' => 'admin2', 
-                'email' => 'admin2@example.com'
-            ]);
-    }
+    {}
 }

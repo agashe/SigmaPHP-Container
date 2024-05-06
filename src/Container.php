@@ -89,11 +89,16 @@ class Container implements PsrContainerInterface , ContainerInterface
     public function get($id)
     {
         $this->registerProviders();
+        $this->bootProviders();
 
         if (!$this->has($id)) {
             // in case of a PHP built in class
-            if (class_exists($id)) {
-                return new ('\\' . $id);
+            if ($this->isClass($id)) {
+                $class = new \ReflectionClass($id);
+                
+                if (!$class->isUserDefined()) {
+                    return new ('\\' . $id);
+                }
             }
 
             throw new NotFoundException(
@@ -116,8 +121,6 @@ class Container implements PsrContainerInterface , ContainerInterface
         } else {
             $definition = $this->dependencies[$id];
         }
-
-        $this->bootProviders();
 
         if ($this->isClosure($definition)) {
             return $this->resolveFactory($definition);
@@ -393,7 +396,7 @@ class Container implements PsrContainerInterface , ContainerInterface
                 $this->isBootingProviders = true;
 
                 $serviceProvider->boot($this);
-                
+
                 $this->isBootingProviders = false;
             }
 

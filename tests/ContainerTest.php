@@ -1145,7 +1145,8 @@ class ContainerTest extends TestCase
         );
 
         $this->expectOutputString(
-            "The message (Hello \"mohamed\") was sent to : mohamed@eample.com\n"
+            "The message (Hello \"mohamed\") was " .
+            "sent to : mohamed@example.com\n"
         );
     }
 
@@ -1158,6 +1159,9 @@ class ContainerTest extends TestCase
     public function testProvidersCanInjectSetterMethodWithPrimitiveParameters()
     {
         $container = new Container();
+
+        $container->set('admin_name', 'admin2');
+        $container->set('admin_email', 'admin2@example.com');
 
         $container->set(MailerExample::class);
         $container->registerProvider(LogExampleProvider::class);

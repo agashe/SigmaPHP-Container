@@ -21,7 +21,7 @@ class UserServiceProvider implements ProviderInterface
         $user = $container->get(UserExample::class);
         
         $user->name = 'mohamed';
-        $user->email = 'mohamed@eample.com';
+        $user->email = 'mohamed@example.com';
         
         $user->sendWelcomeMail();
     }
