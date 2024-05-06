@@ -34,8 +34,8 @@ class LogServiceProvider implements ProviderInterface
         $container->set(LogExample::class)
             ->setMethod('setMailerAndAdmin', [
                 'mailer' => MailerExample::class,
-                'name' => $container->getValue('admin_name'), 
-                'email' => $container->getValue('admin_email')
+                'name' => 'admin2', 
+                'email' => 'admin2@example.com'
             ]);
     }
 }

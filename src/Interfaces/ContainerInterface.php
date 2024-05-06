@@ -35,23 +35,6 @@ interface ContainerInterface
     public function setMethod($name, $args);
 
     /**
-     * Set a constant value in the container.
-     * 
-     * @param string $name
-     * @param mixed $value
-     * @return void
-     */
-    public function setValue($name, $value);
-
-    /**
-     * Get a constant value from in the container.
-     * 
-     * @param string $name
-     * @return mixed
-     */
-    public function getValue($name);
-
-    /**
      * Register a service provider.
      * 
      * @param string $provider

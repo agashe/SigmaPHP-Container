@@ -167,6 +167,40 @@ class ContainerTest extends TestCase
     }
 
     /**
+     * 
+     * Test container can accept different types of definitions.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanAcceptDifferentTypesOfDefinitions()
+    {
+        $container = new Container();
+
+        $definitions = [
+            [],
+            false,
+            null,
+            '',
+            123,
+            new \stdClass(),
+            fn() => true
+        ];
+
+        $countAssertions = count($definitions);
+
+        foreach ($definitions as $i => $definition) {
+            $container->set("item{$i}", $definition);
+            
+            if ($container->get("item{$i}") == $definition) {
+                $countAssertions -= 1;
+            }
+        }
+
+        $this->assertEquals(0, $countAssertions);
+    }
+
+    /**
      * Test container will throw exception if id is not found.
      *
      * @runInSeparateProcess
@@ -181,12 +215,12 @@ class ContainerTest extends TestCase
     }
 
     /**
-     * Test container will throw exception for invalid id or definition.
+     * Test container will throw exception for invalid id.
      *
      * @runInSeparateProcess
      * @return void
      */
-    public function testContainerWillThrowExceptionForInvalidIdOrDefinition()
+    public function testContainerWillThrowExceptionForInvalidId()
     {
         $container = new Container();
 
@@ -200,7 +234,7 @@ class ContainerTest extends TestCase
             fn() => true
         ];
 
-        $countInvalidIds = $countInvalidDefinitions = count($invalidValues);
+        $countInvalidIds = count($invalidValues);
 
         foreach ($invalidValues as $invalidValue) {
             try {
@@ -210,32 +244,9 @@ class ContainerTest extends TestCase
                     $countInvalidIds -= 1;
                 }
             }
-
-            try {
-                $container->set('mailer', $invalidValue);
-            } catch (\Exception $e) {
-                if ($e instanceof ContainerException) {
-                    $countInvalidDefinitions -= 1;
-                }
-            }
         }
 
         $this->assertEquals(0, $countInvalidIds);
-        $this->assertEquals(2, $countInvalidDefinitions);
-    }
-
-    /**
-     * Test container will throw exception if class is not found.
-     *
-     * @runInSeparateProcess
-     * @return void
-     */
-    public function testContainerWillThrowExceptionIfClassIsNotFound()
-    {
-        $this->expectException(ContainerException::class);
-
-        $container = new Container();
-        $container->set('unknown', 'This\Class\Does\Not\Exist');
     }
 
     /**
@@ -715,53 +726,6 @@ class ContainerTest extends TestCase
         );
     }
 
-     /**
-     * Test container can set global value.
-     *
-     * @runInSeparateProcess
-     * @return void
-     */
-    public function testContainerCanSetGlobalValue()
-    {
-        $container = new Container();
-
-        $container->setValue('db_name', 'test');
-
-        // get private values array
-        $values = $this->getPrivatePropertyValue($container, 'values');
-
-        $this->assertEquals('test', $values['db_name']);
-    }
-
-    /**
-     * Test container can get global value.
-     *
-     * @runInSeparateProcess
-     * @return void
-     */
-    public function testContainerCanGetGlobalValue()
-    {
-        $container = new Container();
-
-        $container->setValue('db_name', 'test');
-
-        $this->assertEquals('test', $container->getValue('db_name'));
-    }
-
-    /**
-     * Test container will throw exception if global value is not found.
-     *
-     * @runInSeparateProcess
-     * @return void
-     */
-    public function testContainerWillThrowExceptionIfGlobalValueIsNotFound()
-    {
-        $this->expectException(NotFoundException::class);
-
-        $container = new Container();
-        $container->getValue('unknown');
-    }
-
     /**
      * Test container can inject setter method.
      *
@@ -831,16 +795,16 @@ class ContainerTest extends TestCase
     {
         $container = new Container();
 
-        $container->setValue('admin_name', 'admin1');
-        $container->setValue('admin_email', 'admin1@example.com');
+        $container->set('admin_name', 'admin1');
+        $container->set('admin_email', 'admin1@example.com');
 
         $container->set(MailerExample::class);
 
         $container->set(LogExample::class)
             ->setMethod('setMailerAndAdmin', [
                 'mailer' => MailerExample::class,
-                'name' => $container->getValue('admin_name'),
-                'email' => $container->getValue('admin_email')
+                'name' => $container->get('admin_name'),
+                'email' => $container->get('admin_email')
             ]);
 
         $this->assertInstanceOf(
@@ -1194,9 +1158,6 @@ class ContainerTest extends TestCase
     public function testProvidersCanInjectSetterMethodWithPrimitiveParameters()
     {
         $container = new Container();
-
-        $container->setValue('admin_name', 'admin2');
-        $container->setValue('admin_email', 'admin2@example.com');
 
         $container->set(MailerExample::class);
         $container->registerProvider(LogExampleProvider::class);

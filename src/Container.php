@@ -34,11 +34,6 @@ class Container implements PsrContainerInterface , ContainerInterface
     protected $methods = [];
 
     /**
-     * @var array $values 
-     */
-    protected $values = [];
-
-    /**
      * @var array $providers 
      */
     protected $providers = [];
@@ -151,13 +146,18 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function set($id, $definition = null)
     {
-        if (empty($definition)) {
-            $definition = $id;
+        if (func_num_args() == 1) {
+            if ($this->isClass($id)) {
+                $definition = $id;
+            } else {
+                throw new ContainerException(
+                    "Invalid definition : " .
+                    "only classes can be accepted as a single parameter !"
+                );
+            }
         }
 
-        $this->validateId($id);
-        $this->validateDefinition($definition);
-        
+        $this->validateId($id);        
         $this->dependencies[$id] = $definition;
         
         return $this;
@@ -217,35 +217,6 @@ class Container implements PsrContainerInterface , ContainerInterface
         $this->methods[array_key_last($this->dependencies)][$name] = $args;
 
         return $this;       
-    }
-
-    /**
-     * Set a constant value in the container.
-     * 
-     * @param string $name
-     * @param mixed $value
-     * @return self
-     */
-    public function setValue($name, $value)
-    {
-        $this->values[$name] = $value;
-    }
-
-    /**
-     * Get a constant value from in the container.
-     * 
-     * @param string $name
-     * @return mixed
-     */
-    public function getValue($name)
-    {
-        if (!in_array($name, array_keys($this->values))) {
-            throw new NotFoundException(
-                "The constant value \"{$name}\" is not found in the container !"
-            );
-        }
-
-        return $this->values[$name];
     }
 
     /**
@@ -319,39 +290,6 @@ class Container implements PsrContainerInterface , ContainerInterface
         if (!is_string($id) || empty($id)) {
             throw new ContainerException(
                 "Invalid id. Id can only accept string values !"
-            );
-        }
-    }
-
-    /**
-     * Check that the definition is valid.
-     * 
-     * We have 3 valid types of definitions so far :
-     * - class path (e.g, Mailer::class) 
-     * - callback functions "factories" (e.g, fn() => {...}) 
-     * - objects (e.g, new Mailer()) 
-     * 
-     * @param string $definition
-     * @return void
-     */
-    protected function validateDefinition($definition)
-    { 
-        $invalid = false;
-
-        if (is_string($definition)) {
-            if (empty($definition) || !class_exists('\\' . $definition)) {
-                $invalid = true;
-            }
-        } else {
-            if (!is_callable($definition) && !is_object($definition)) {
-                $invalid = true;
-            }
-        }
-        
-        if ($invalid) {
-            throw new ContainerException(
-                "Invalid definition : " .
-                "only classes , objects and callbacks are accepted !"
             );
         }
     }
