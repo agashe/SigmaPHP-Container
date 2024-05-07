@@ -1199,4 +1199,102 @@ class ContainerTest extends TestCase
 
         $this->expectOutputString("Help !! Exception\n");
     }
+    
+    /**
+     * Test container can make objects out of class paths.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanMakeObjectsOutOfClassPaths()
+    {
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(UserExample::class)
+            ->setParam(MailerExample::class);
+
+        $this->assertInstanceOf(
+            UserExample::class,
+            $container->make(UserExample::class)
+        );
+
+        $user = $container->make(UserExample::class);
+
+        $user->name = 'ahmed';
+        $user->email = 'ahmed@eample.com';
+
+        $user->sendWelcomeMail();
+
+        $this->expectOutputString(
+            "The message (Hello \"ahmed\") was sent to : ahmed@eample.com\n"
+        );
+    }
+    
+    /**
+     * Test make will return new instance on every call.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testMakeWillReturnNewInstanceOnEveryCall()
+    {
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(UserExample::class)
+            ->setParam(MailerExample::class);
+
+        $user1 = $container->make(UserExample::class);
+        $user2 = $container->make(UserExample::class);
+
+        $this->assertFalse($user1 === $user2);
+    }
+
+    /**
+     * Test make can create instances from PHP built in classes.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testMakeCanCreateInstancesFromPhpBuiltInClasses()
+    {
+        $container = new Container();
+
+        $this->assertInstanceOf(
+            \Exception::class,
+            $container->make(\Exception::class)
+        );
+    }
+
+    /**
+     * Test make will throw exception if id is not found.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testMakeWillThrowExceptionIfIdIsNotFound()
+    {
+        $this->expectException(NotFoundException::class);
+
+        $container = new Container();
+        $container->make('mailer');
+    }
+
+    /**
+     * Test make will throw exception if the id is not a class path.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testMakeWillThrowExceptionIfTheIdIsNotAClassPath()
+    {
+        $this->expectException(ContainerException::class);
+
+        $container = new Container();
+
+        $container->set('foo', fn() => true);
+
+        $container->make('foo');
+    }
 }

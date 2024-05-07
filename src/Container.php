@@ -256,6 +256,46 @@ class Container implements PsrContainerInterface , ContainerInterface
     }
 
     /**
+     * Make new instance of definition.
+     * 
+     * @param string $id
+     * @return mixed
+     */
+    public function make($id)
+    {
+        $this->registerProviders();
+        $this->bootProviders();
+
+        if (!$this->has($id)) {
+            // in case of a PHP built in class
+            if ($this->isClass($id)) {
+                $class = new \ReflectionClass($id);
+                
+                if (!$class->isUserDefined()) {
+                    return new ('\\' . $id);
+                }
+            }
+
+            throw new NotFoundException(
+                "The id \"{$id}\" is not found in the container !"
+            );
+        }
+
+        // unlike get() , make() will generate new instance of 
+        // the definition every time
+        if ($this->isClass($this->dependencies[$id])) {
+            $instance = $this->createInstance($id);
+            $this->callInstanceSetters($id, $instance);
+            
+            return $instance;
+        } else {
+            throw new ContainerException(
+                "Invalid class path. make() is used only to create objects"
+            );
+        }
+    }
+
+    /**
      * Check if a string is a valid class path.
      * 
      * @param string $path

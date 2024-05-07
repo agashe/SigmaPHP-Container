@@ -41,4 +41,12 @@ interface ContainerInterface
      * @return void
      */
     public function registerProvider($provider);
+
+    /**
+     * Make new instance of definition.
+     * 
+     * @param string $id
+     * @return mixed
+     */
+    public function make($id);
 }
