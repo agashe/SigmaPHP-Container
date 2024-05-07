@@ -123,7 +123,7 @@ class Container implements PsrContainerInterface , ContainerInterface
         }
 
         if ($this->isClosure($definition)) {
-            return $this->resolveFactory($definition);
+            return $this->resolveFactory($definition, $id);
         }
 
         return $definition;
@@ -176,11 +176,12 @@ class Container implements PsrContainerInterface , ContainerInterface
     public function setParam($name, $value = null)
     {
         if (empty($this->dependencies) ||
-            !class_exists(end($this->dependencies))
+            (!$this->isClass(end($this->dependencies)) &&
+            !$this->isClosure(end($this->dependencies)))
         ) {
             throw new ContainerException(
                 "The parameter \"{$name}\" should " . 
-                "be bounded to a class constructor !"
+                "be bounded to a class constructor or a closure !"
             );
         }
 
@@ -341,56 +342,71 @@ class Container implements PsrContainerInterface , ContainerInterface
      * Run factory methods.
      * 
      * @param \Closure $factory
+     * @param string $id
      * @return mixed
      */
-    protected function resolveFactory($factory)
+    protected function resolveFactory($factory, $id = '')
     {
-        // check if factory accept the container as a parameter
         $function = new \ReflectionFunction($factory);
-            
+        
         if ($function->getParameters() !== null) {
-            $result = $factory($this);
+            $functionParams = isset($this->params[$id]) ? 
+                $this->params[$id] : [];
+
+            $params = $this->getMethodParamValues(
+                $function->getParameters(), 
+                $functionParams
+            );
+
+            $result = $function->invoke(...$params);
         } else {
-            $result = $factory();
+            $result = $function->invoke();
         }
 
         return $result;
     }
     
     /**
-     * Get method's arguments values.
+     * Get method's parameters values , by injecting all required
+     * dependencies and resolve any closures.
      * 
-     * @param \ReflectionMethod $method
+     * @param \ReflectionParameter[] $params
      * @param array $args
      * @return array
      */
-    protected function getMethodArguments($method, $args = [])
+    protected function getMethodParamValues($params, $args = [])
     {
         $methodArgs = [];
 
-        foreach ($method->getParameters() as $parameter) {
+        foreach ($params as $param) {
             // check if parameter is a primitive or a class !!
-            if ($parameter->getType() !== null) {
-                $dependency = $parameter->getType()->getName();
+            if ($param->getType() !== null) {
+                $dependency = $param->getType()->getName();
                 
-                if (isset($args[$parameter->name])) {
-                    if ($this->isClass($args[$parameter->name])) {
+                if (isset($args[$param->name])) {
+                    if ($this->isClass($args[$param->name])) {
                         $methodArgs[] = $this->get($dependency);
                     } else {
-                        $methodArg = $args[$parameter->name];
+                        $methodArg = $args[$param->name];
 
                         if ($this->isClosure($methodArg)) {                        
                             $methodArgs[] = $this->resolveFactory($methodArg);
                         } else {
-                            $methodArgs[] = $args[$parameter->name];
+                            $methodArgs[] = $methodArg;
                         }
                     }
                 } else {
-                    $methodArgs[] = $this->get($dependency);
+                    // in case the factory accept the container as a parameter
+                    // we pass the current container as parameter
+                    if ($dependency == get_class($this)) {
+                        $methodArgs[] = $this;
+                    } else {
+                        $methodArgs[] = $this->get($dependency);
+                    }
                 }
             } else {
-                if (isset($args[$parameter->name])) {
-                    $methodArgs[] = $args[$parameter->name];
+                if (isset($args[$param->name])) {
+                    $methodArgs[] = $args[$param->name];
                 }
             }
         }
@@ -459,8 +475,8 @@ class Container implements PsrContainerInterface , ContainerInterface
         $dependencyParams = isset($this->params[$id]) ? $this->params[$id] : [];
 
         if ($constructor !== null) {
-            $constructorParams = $this->getMethodArguments(
-                $constructor, 
+            $constructorParams = $this->getMethodParamValues(
+                $constructor->getParameters(), 
                 $dependencyParams
             );
 
@@ -489,7 +505,11 @@ class Container implements PsrContainerInterface , ContainerInterface
             $method = new \ReflectionMethod($this->dependencies[$id], $name);
             
             if ($method->getParameters() !== null) {
-                $methodArgs = $this->getMethodArguments($method, $args);
+                $methodArgs = $this->getMethodParamValues(
+                    $method->getParameters(), 
+                    $args
+                );
+                
                 $method->invoke($instance, ...$methodArgs);
             } else {
                 $method->invoke($instance);

@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use PHPUnit\TextUI\CliArguments\Mapper;
 use PHPUnit\Util\ErrorHandler;
 use SigmaPHP\Container\Container;
 use SigmaPHP\Container\Exceptions\ContainerException;
@@ -372,6 +373,13 @@ class ContainerTest extends TestCase
             GreeterExample::class,
             $container->get(GreeterExample::class)
         );
+
+        $greeterService = $container->get(GreeterExample::class);
+        
+        // invoke the class
+        $greeterService();
+
+        $this->expectOutputString("Hello SigmaPHP-Container !\n");
     }
 
     /**
@@ -429,7 +437,7 @@ class ContainerTest extends TestCase
             $params[UserExample::class][MailerExample::class]
         );
     }
-
+  
     /**
      * Test container can throw exception if the single parameter for `setParam`
      * is not bounded to a class.
@@ -461,6 +469,41 @@ class ContainerTest extends TestCase
 
         $container->set('mailer', MailerExample::class)
             ->setParam('invalid');
+    }
+    
+    /**
+     * Test container can throw exception if trying to set a parameter for an
+     * invalid item which is not a class path or a closure.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionIfInvalidParameterBinding()
+    {
+        $container = new Container();
+
+        $invalidValues = [
+            [],
+            false,
+            null,
+            '',
+            123,
+            new \stdClass(),
+        ];
+
+        $countInvalidBindings = count($invalidValues);
+
+        foreach ($invalidValues as $invalidValue) {
+            try {
+                $container->set($invalidValue, MailerExample::class);
+            } catch (\Exception $e) {
+                if ($e instanceof ContainerException) {
+                    $countInvalidBindings -= 1;
+                }
+            }
+        }
+
+        $this->assertEquals(0, $countInvalidBindings);
     }
 
     /**
@@ -652,7 +695,7 @@ class ContainerTest extends TestCase
         $container->set(MailerExample::class);
         $container->set(AdminExample::class)
             ->setParam('name', 'admin')
-            ->setParam('mailer', function ($c) {
+            ->setParam('mailer', function (Container $c) {
                 return $c->get(MailerExample::class);
             })
             ->setParam('email', 'admin@example.com');
@@ -672,6 +715,75 @@ class ContainerTest extends TestCase
     }
 
     /**
+     * Test container can bind parameters for factories (closures).
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanBindParametersForFactories()
+    {
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set('sendEmail', 
+            function (MailerExample $mailer, $email, $body) {
+                $mailer->send($email, $body);
+            })
+            ->setParam(MailerExample::class)
+            ->setParam('email', 'test@example.com')
+            ->setParam('body', 'Hi, test')
+            ->setParam(MailerExample::class);
+
+        $container->get('sendEmail');
+
+        $this->expectOutputString(
+            "The message (Hi, test) was sent to : test@example.com\n"
+        );
+    }
+    
+    /**
+     * Test container can bind primitives and default values 
+     * for factories (closures).
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanBindPrimitivesAndDefaultValuesForFactories()
+    {
+        $container = new Container();
+
+        $container->set('findBoxVolume',
+            function ($h, $w, $l = 50) {
+                return $h*$w*$l;
+            })
+            ->setParam('w', 20)
+            ->setParam('h', 10);
+
+        $this->assertEquals(10000, $container->get('findBoxVolume'));
+    }
+    
+    /**
+     * Test factory can accept the container as a parameter.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testFactoryCanAcceptTheContainerAsAParameter()
+    {
+        $container = new Container();
+
+        $container->set('mailer', MailerExample::class);
+        $container->set('getMailService', function (Container $c) {
+            return $c->get('mailer');
+        })->setParam('c', $container);
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $container->get('getMailService')
+        );
+    }
+
+    /**
      * Test factory can access current container.
      *
      * @runInSeparateProcess
@@ -687,7 +799,7 @@ class ContainerTest extends TestCase
             ->setParam(MailerExample::class)
             ->setParam('email', 'super_admin@example.com');
 
-        $container->set('super_admin', function ($c) {
+        $container->set('super_admin', function (Container $c) {
             return $c->get(AdminExample::class);
         });
 
@@ -718,7 +830,10 @@ class ContainerTest extends TestCase
 
         $container->set(MailerExample::class, MailerExample::class);
 
-        $container->set('my_mailer', fn($c) => $c->get(MailerExample::class));
+        $container->set(
+            'my_mailer',
+            fn(Container $c) => $c->get(MailerExample::class)
+        );
 
         $this->assertInstanceOf(
             MailerExample::class,
@@ -866,7 +981,7 @@ class ContainerTest extends TestCase
         $container->set(MailerExample::class);
         $container->set(NotificationExample::class)
             ->setMethod('setMailer', [
-                'mailer' => function ($c) {
+                'mailer' => function (Container $c) {
                     return $c->get(MailerExample::class);
                 }
             ]);
