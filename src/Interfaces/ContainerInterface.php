@@ -49,4 +49,30 @@ interface ContainerInterface
      * @return mixed
      */
     public function make($id);
+    
+    /**
+     * Call a method in class.
+     * 
+     * @param string $id
+     * @param string $method
+     * @param array $args
+     * @return mixed
+     */
+    public function call($id, $method, $args);
+    
+    /**
+     * Call a closure and inject all necessary dependencies.
+     * 
+     * @param \Closure $closure
+     * @param array $args
+     * @return mixed
+     */
+    public function callFunction($closure, $args);
+    
+    /**
+     * Enable autowiring.
+     * 
+     * @return void
+     */
+    public function autowire();
 }

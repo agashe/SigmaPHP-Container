@@ -297,6 +297,78 @@ class Container implements PsrContainerInterface , ContainerInterface
     }
 
     /**
+     * Call a method in class.
+     * 
+     * @param string $id
+     * @param string $method
+     * @param array $args
+     * @return mixed
+     */
+    public function call($id, $method, $args = [])
+    {
+        if (!$this->has($id)) {
+            throw new NotFoundException(
+                "The id \"{$id}\" is not found in the container !"
+            );
+        }
+
+        if (!$this->isClass($this->dependencies[$id])) {
+            throw new ContainerException(
+                "\"call\" can only be used with class methods !"
+            );
+        }
+
+        $methodRef = new \ReflectionMethod($this->dependencies[$id], $method);
+        
+        if (in_array($id, array_keys($this->instances))) {
+            $instance = $this->instances[$id];
+        } else {
+            $instance = $this->get($id);
+        }
+
+        $result = null;
+
+        if ($methodRef->getParameters() !== null) {
+            $methodArgs = $this->getMethodParamValues(
+                $methodRef->getParameters(), 
+                $args
+            );
+            
+            $result = $methodRef->invoke($instance, ...$methodArgs);
+        } else {
+            $result = $methodRef->invoke($instance);
+        }
+
+        return $result;
+    }
+    
+    /**
+     * Call a closure and inject all necessary dependencies.
+     * 
+     * @param \Closure $closure
+     * @param array $args
+     * @return mixed
+     */
+    public function callFunction($closure, $args = [])
+    {
+        if (!$this->isClosure($closure)) {
+            throw new ContainerException(
+                "\"callFunction\" can only be used with closures !"
+            );
+        }
+
+        return $this->resolveFactory($closure, '', $args);
+    }
+    
+    /**
+     * Enable autowiring.
+     * 
+     * @return void
+     */
+    public function autowire()
+    {}
+    
+    /**
      * Check if a string is a valid class path.
      * 
      * @param string $path
@@ -343,15 +415,16 @@ class Container implements PsrContainerInterface , ContainerInterface
      * 
      * @param \Closure $factory
      * @param string $id
+     * @param array $args
      * @return mixed
      */
-    protected function resolveFactory($factory, $id = '')
+    protected function resolveFactory($factory, $id = '', $args = [])
     {
         $function = new \ReflectionFunction($factory);
         
         if ($function->getParameters() !== null) {
             $functionParams = isset($this->params[$id]) ? 
-                $this->params[$id] : [];
+                $this->params[$id] : $args;
 
             $params = $this->getMethodParamValues(
                 $function->getParameters(), 

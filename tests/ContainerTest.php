@@ -1393,6 +1393,7 @@ class ContainerTest extends TestCase
         $this->expectException(NotFoundException::class);
 
         $container = new Container();
+
         $container->make('mailer');
     }
 
@@ -1411,5 +1412,112 @@ class ContainerTest extends TestCase
         $container->set('foo', fn() => true);
 
         $container->make('foo');
+    }
+    
+    /**
+     * Test container can call methods on classes and inject dependencies.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanCallMethodsOnClassesAndInjectDependencies()
+    {
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        $container->set(NotificationExample::class);
+
+        $container->call(
+            NotificationExample::class,
+            'pushMessageUsingMailer',
+            [
+                'name' => 'TESTING'
+            ]
+        );
+
+        $this->expectOutputString(
+            "The message (Notification using mailer to : \"TESTING\") " . 
+            "was sent to : testing@example.com\n"
+        );
+    }
+    
+    /**
+     * Test call will throw exception if the id is not found.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testCallWillThrowExceptionIfTheIdIsNotFound()
+    {
+        $this->expectException(NotFoundException::class);
+
+        $container = new Container();
+
+        $container->call('unknown', 'unknown');
+    }
+
+    /**
+     * Test call will throw exception if the id is not a class path.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testCallWillThrowExceptionIfTheIdIsNotAClassPath()
+    {
+        $this->expectException(ContainerException::class);
+
+        $container = new Container();
+
+        $container->set('foo', fn() => true);
+
+        $container->call('foo', 'bar');
+    }
+
+    /**
+     * Test container can call closures and inject dependencies.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanCallClosuresAndInjectDependencies()
+    {
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+        
+        $container->callFunction(
+            function (
+                MailerExample $mailer, 
+                $body,
+                $email = 'testing@example.com'
+            ) {
+                $mailer->send($email, $body);
+            },
+            [
+                'body' => 'Test call function method'
+            ]
+        );
+
+        $this->expectOutputString(
+            "The message (Test call function method) " . 
+            "was sent to : testing@example.com\n"
+        );
+    }
+
+    /**
+     * Test call function will throw exception for non closure parameter.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testCallFunctionWillThrowExceptionForNonClosureParameter()
+    {
+        $this->expectException(ContainerException::class);
+
+        $container = new Container();
+
+        $container->set(MailerExample::class);
+
+        $container->callFunction(MailerExample::class);
     }
 }
