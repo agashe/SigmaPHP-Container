@@ -110,7 +110,7 @@ class Container implements PsrContainerInterface , ContainerInterface
         // the object for future use this is like a cache mechanism 
         // instead of creating a new instance every time !
         if ($this->isClass($this->dependencies[$id])) {
-            if (in_array($id, array_keys($this->instances))) {
+            if (isset($this->instances[$id])) {
                 return $this->instances[$id];
             }
 
@@ -291,7 +291,8 @@ class Container implements PsrContainerInterface , ContainerInterface
             return $instance;
         } else {
             throw new ContainerException(
-                "Invalid class path. make() is used only to create objects"
+                "Invalid class path. \"make()\" can only be used " .
+                "to create objects"
             );
         }
     }
@@ -314,32 +315,12 @@ class Container implements PsrContainerInterface , ContainerInterface
 
         if (!$this->isClass($this->dependencies[$id])) {
             throw new ContainerException(
-                "\"call\" can only be used with class methods !"
+                "\"call()\" can only be used with class methods !"
             );
         }
 
-        $methodRef = new \ReflectionMethod($this->dependencies[$id], $method);
-        
-        if (in_array($id, array_keys($this->instances))) {
-            $instance = $this->instances[$id];
-        } else {
-            $instance = $this->get($id);
-        }
-
-        $result = null;
-
-        if ($methodRef->getParameters() !== null) {
-            $methodArgs = $this->getMethodParamValues(
-                $methodRef->getParameters(), 
-                $args
-            );
-            
-            $result = $methodRef->invoke($instance, ...$methodArgs);
-        } else {
-            $result = $methodRef->invoke($instance);
-        }
-
-        return $result;
+        $instance = $this->get($id);
+        return $this->resolveMethod($id, $method, $instance, $args);
     }
     
     /**
@@ -353,7 +334,7 @@ class Container implements PsrContainerInterface , ContainerInterface
     {
         if (!$this->isClosure($closure)) {
             throw new ContainerException(
-                "\"callFunction\" can only be used with closures !"
+                "\"callFunction()\" can only be used with closures !"
             );
         }
 
@@ -434,6 +415,34 @@ class Container implements PsrContainerInterface , ContainerInterface
             $result = $function->invoke(...$params);
         } else {
             $result = $function->invoke();
+        }
+
+        return $result;
+    }
+    
+    /**
+     * Run a method in class.
+     * 
+     * @param string $id
+     * @param string $method
+     * @param mixed $instance
+     * @param array $args
+     * @return mixed
+     */
+    protected function resolveMethod($id, $method, $instance, $args = [])
+    {
+        $methodRef = new \ReflectionMethod($this->dependencies[$id], $method);
+        $result = null;
+
+        if ($methodRef->getParameters() !== null) {
+            $methodArgs = $this->getMethodParamValues(
+                $methodRef->getParameters(), 
+                $args
+            );
+            
+            $result = $methodRef->invoke($instance, ...$methodArgs);
+        } else {
+            $result = $methodRef->invoke($instance);
         }
 
         return $result;
@@ -575,18 +584,7 @@ class Container implements PsrContainerInterface , ContainerInterface
         }
 
         foreach ($this->methods[$id] as $name => $args) {
-            $method = new \ReflectionMethod($this->dependencies[$id], $name);
-            
-            if ($method->getParameters() !== null) {
-                $methodArgs = $this->getMethodParamValues(
-                    $method->getParameters(), 
-                    $args
-                );
-                
-                $method->invoke($instance, ...$methodArgs);
-            } else {
-                $method->invoke($instance);
-            }
+            return $this->resolveMethod($id, $name, $instance, $args);
         }
     }
 }
