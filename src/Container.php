@@ -54,6 +54,11 @@ class Container implements PsrContainerInterface , ContainerInterface
     protected $isBootingProviders = false;
 
     /**
+     * @var bool $isAutowiringEnabled 
+     */
+    protected $isAutowiringEnabled = false;
+
+    /**
      * Container Constructor.
      * 
      * @param array $definitions 
@@ -90,7 +95,7 @@ class Container implements PsrContainerInterface , ContainerInterface
     {
         $this->registerProviders();
         $this->bootProviders();
-
+        
         if (!$this->has($id)) {
             // in case of a PHP built in class
             if ($this->isClass($id)) {
@@ -101,11 +106,20 @@ class Container implements PsrContainerInterface , ContainerInterface
                 }
             }
 
+            if ($this->isAutowiringEnabled) {
+                if (isset($this->instances[$id])) {
+                    return $this->instances[$id];
+                }
+    
+                $this->instances[$id] = $this->createInstance($id);
+                return $this->instances[$id];
+            }
+
             throw new NotFoundException(
                 "The id \"{$id}\" is not found in the container !"
             );
         }
-
+        
         // in case of class path , we create a new instance then we save
         // the object for future use this is like a cache mechanism 
         // instead of creating a new instance every time !
@@ -125,7 +139,7 @@ class Container implements PsrContainerInterface , ContainerInterface
         if ($this->isClosure($definition)) {
             return $this->resolveFactory($definition, $id);
         }
-
+        
         return $definition;
     }
 
@@ -160,7 +174,13 @@ class Container implements PsrContainerInterface , ContainerInterface
             }
         }
 
-        $this->validateId($id);        
+        $this->validateId($id);
+
+        // in case the id already exists , we clear the current instance
+        if (isset($this->instances[$id])) {
+            unset($this->instances[$id]);
+        }
+
         $this->dependencies[$id] = $definition;
         
         return $this;
@@ -277,6 +297,15 @@ class Container implements PsrContainerInterface , ContainerInterface
                 }
             }
 
+            if ($this->isAutowiringEnabled) {
+                if (isset($this->instances[$id])) {
+                    return $this->instances[$id];
+                }
+    
+                $this->instances[$id] = $this->createInstance($id);
+                return $this->instances[$id];
+            }
+
             throw new NotFoundException(
                 "The id \"{$id}\" is not found in the container !"
             );
@@ -347,7 +376,9 @@ class Container implements PsrContainerInterface , ContainerInterface
      * @return void
      */
     public function autowire()
-    {}
+    {
+        $this->isAutowiringEnabled = true;
+    }
     
     /**
      * Check if a string is a valid class path.
@@ -459,12 +490,28 @@ class Container implements PsrContainerInterface , ContainerInterface
     protected function getMethodParamValues($params, $args = [])
     {
         $methodArgs = [];
-
         foreach ($params as $param) {
+            $paramClassName = '';
+            $paramIsBuiltIn = false;
+
+            // in case of multiple param types , like union and intersection
+            // we always resolve first type 
+            if (($param->getType() !== null)) {
+                if (!($param->getType() instanceof \ReflectionNamedType)) {
+                    $paramClassName = $param->getType()->getTypes()[0]
+                        ->getName();
+                    $paramIsBuiltIn = $param->getType()->getTypes()[0]
+                        ->isBuiltin();
+                } else {
+                    $paramClassName = $param->getType()->getName();
+                    $paramIsBuiltIn = $param->getType()->isBuiltin();
+                }
+            }
+
             // check if parameter is a primitive or a class !!
-            if ($param->getType() !== null) {
-                $dependency = $param->getType()->getName();
-                
+            if (($paramClassName !== '') && !$paramIsBuiltIn) {
+                $dependency = $paramClassName;
+
                 if (isset($args[$param->name])) {
                     if ($this->isClass($args[$param->name])) {
                         $methodArgs[] = $this->get($dependency);
@@ -483,7 +530,15 @@ class Container implements PsrContainerInterface , ContainerInterface
                     if ($dependency == get_class($this)) {
                         $methodArgs[] = $this;
                     } else {
-                        $methodArgs[] = $this->get($dependency);
+                        if ($this->isAutowiringEnabled) {
+                            if ($this->has($dependency) || 
+                                $this->isClass($dependency)
+                            ) {
+                                $methodArgs[] = $this->get($dependency);
+                            }
+                        } else {
+                            $methodArgs[] = $this->get($dependency);
+                        }
                     }
                 }
             } else {
@@ -550,7 +605,13 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     protected function createInstance($id)
     {
-        $class = new \ReflectionClass($this->dependencies[$id]);
+        if ($this->isAutowiringEnabled && !$this->has($id)) {
+            $className = '\\' . $id;
+        } else {
+            $className = $this->dependencies[$id];
+        }
+
+        $class = new \ReflectionClass($className);
         $constructor = $class->getConstructor();
         $instance = null;
 

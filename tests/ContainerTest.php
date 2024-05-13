@@ -6,10 +6,14 @@ use SigmaPHP\Container\Exceptions\ContainerException;
 use SigmaPHP\Container\Exceptions\NotFoundException;
 use SigmaPHP\Container\Tests\Examples\Mailer as MailerExample;
 use SigmaPHP\Container\Tests\Examples\MailerInterface as MailerExampleInterface;
+use SigmaPHP\Container\Tests\Examples\MarketingMailer as MarketingMailerExample;
 use SigmaPHP\Container\Tests\Examples\Greeter as GreeterExample;
 use SigmaPHP\Container\Tests\Examples\Box as BoxExample;
 use SigmaPHP\Container\Tests\Examples\User as UserExample;
 use SigmaPHP\Container\Tests\Examples\Admin as AdminExample;
+use SigmaPHP\Container\Tests\Examples\Customer as CustomerExample;
+use SigmaPHP\Container\Tests\Examples\SuperAdmin as SuperAdminExample;
+use SigmaPHP\Container\Tests\Examples\MarketingAdmin as MarketingAdminExample;
 use SigmaPHP\Container\Tests\Examples\Notification as NotificationExample;
 use SigmaPHP\Container\Tests\Examples\Log as LogExample;
 use SigmaPHP\Container\Tests\Examples\ErrorHandler as ErrorHandlerExample;
@@ -190,6 +194,36 @@ class ContainerTest extends TestCase
         }
 
         $this->assertEquals(0, $countAssertions);
+    }
+
+    /**
+     * Test container can override IDs.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanOverrideIds()
+    {
+        $this->container->set('my_class', MailerExample::class);
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $this->container->get('my_class')
+        );
+
+        $this->container->set('my_class', LogExample::class);
+
+        $this->assertInstanceOf(
+            LogExample::class,
+            $this->container->get('my_class')
+        );
+
+        $this->container->set('my_class', GreeterExample::class);
+
+        $this->assertInstanceOf(
+            GreeterExample::class,
+            $this->container->get('my_class')
+        );
     }
 
     /**
@@ -1427,5 +1461,124 @@ class ContainerTest extends TestCase
         $this->container->set(MailerExample::class);
 
         $this->container->callFunction(MailerExample::class);
+    }
+    
+    /**
+     * Test container can autowire dependencies.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanAutowireDependencies()
+    {
+        $this->container->autowire();
+
+        $this->assertInstanceOf(
+            MailerExample::class,
+            $this->container->get(MailerExample::class)
+        );
+        
+        $this->assertInstanceOf(
+            UserExample::class,
+            $this->container->get(UserExample::class)
+        );
+        
+        $this->assertInstanceOf(
+            LogExample::class,
+            $this->container->get(LogExample::class)
+        );
+
+        $this->assertInstanceOf(
+            GreeterExample::class,
+            $this->container->get(GreeterExample::class)
+        );
+
+        $this->assertInstanceOf(
+            NotificationExample::class,
+            $this->container->get(NotificationExample::class)
+        );
+
+        // PHP built-in classes
+        $this->assertInstanceOf(
+            \Exception::class,
+            $this->container->get(\Exception::class)
+        );
+
+        // Other classes installed by composer
+        $this->assertInstanceOf(
+            \SebastianBergmann\LinesOfCode\Counter::class,
+            $this->container->get(\SebastianBergmann\LinesOfCode\Counter::class)
+        );
+    }
+
+    /**
+     * Test container will throw exception for autowire primitives parameters.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testAutowireWillThrowExceptionForPrimitivesParameters()
+    {
+        $this->expectException(\ArgumentCountError::class);
+
+        $this->container->autowire();
+
+        $this->assertInstanceOf(
+            BoxExample::class,
+            $this->container->get(BoxExample::class)
+        );
+    }
+
+    /**
+     * Test autowire can inject interfaces.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testAutowireCanInjectInterfaces()
+    {
+        $this->container->set(
+            MailerExampleInterface::class, 
+            MarketingMailerExample::class
+        );
+
+        $this->container->autowire();
+
+        $this->assertInstanceOf(
+            CustomerExample::class,
+            $this->container->get(CustomerExample::class)
+        );
+    }
+    
+    /**
+     * Test autowire can resolve union types.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testAutowireCanResolveUnionTypes()
+    {
+        $this->container->autowire();
+
+        $this->assertInstanceOf(
+            SuperAdminExample::class,
+            $this->container->get(SuperAdminExample::class)
+        );
+    }
+    
+    /**
+     * Test autowire can resolve intersection types.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testAutowireCanResolveIntersectionTypes()
+    {
+        $this->container->autowire();
+
+        $this->assertInstanceOf(
+            MarketingAdminExample::class,
+            $this->container->get(MarketingAdminExample::class)
+        );
     }
 }
