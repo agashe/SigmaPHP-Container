@@ -7,7 +7,7 @@ use SigmaPHP\Container\Container;
 /**
  * Service Provider Interface
  */
-interface ProviderInterface
+interface ServiceProviderInterface
 {
     /**
      * The boot method , will be called after all 

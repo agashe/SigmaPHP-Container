@@ -714,8 +714,7 @@ class ContainerTest extends TestCase
             })
             ->setParam(MailerExample::class)
             ->setParam('email', 'test@example.com')
-            ->setParam('body', 'Hi, test')
-            ->setParam(MailerExample::class);
+            ->setParam('body', 'Hi, test');
 
         $this->container->get('sendEmail');
 
@@ -1018,6 +1017,25 @@ class ContainerTest extends TestCase
     }
 
     /**
+     * Test constructor can add definitions array using only class name.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testConstructorCanAddDefinitionsArrayUsingOnlyClassName()
+    {
+        $container = new Container([
+            MailerExample::class,
+            UserExample::class
+        ]);
+
+        $this->assertInstanceOf(
+            UserExample::class,
+            $container->get(UserExample::class)
+        );
+    }
+
+    /**
      * Test container constructor definitions accept objects.
      *
      * @runInSeparateProcess
@@ -1180,7 +1198,7 @@ class ContainerTest extends TestCase
 
     /**
      * Test container will throw exception for a provider that doesn't
-     * implement the \ProviderInterface.
+     * implement the \ServiceProviderInterface.
      *
      * @runInSeparateProcess
      * @return void

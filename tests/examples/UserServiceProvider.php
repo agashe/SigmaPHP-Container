@@ -2,12 +2,12 @@
 
 namespace SigmaPHP\Container\Tests\Examples;
 
-use SigmaPHP\Container\Interfaces\ProviderInterface;
 use SigmaPHP\Container\Container;
+use SigmaPHP\Container\Interfaces\ServiceProviderInterface;
 use SigmaPHP\Container\Tests\Examples\Mailer as MailerExample;
 use SigmaPHP\Container\Tests\Examples\User as UserExample;
 
-class UserServiceProvider implements ProviderInterface
+class UserServiceProvider implements ServiceProviderInterface
 {
     /**
      * The boot method , will be called after all 

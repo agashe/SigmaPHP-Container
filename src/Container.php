@@ -4,7 +4,7 @@ namespace SigmaPHP\Container;
 
 use Psr\Container\ContainerInterface as PsrContainerInterface;
 use SigmaPHP\Container\Interfaces\ContainerInterface;
-use SigmaPHP\Container\Interfaces\ProviderInterface;
+use SigmaPHP\Container\Interfaces\ServiceProviderInterface;
 use SigmaPHP\Container\Exceptions\ContainerException;
 use SigmaPHP\Container\Exceptions\NotFoundException;
 
@@ -80,7 +80,7 @@ class Container implements PsrContainerInterface , ContainerInterface
                     }
                 }
             } else {
-                $this->set($id, $definition);
+                $this->set((is_numeric($id) ? $definition : $id), $definition);
             }
         }
     }
@@ -265,11 +265,11 @@ class Container implements PsrContainerInterface , ContainerInterface
         $interfaces = class_implements($provider);
 
         if (empty($interfaces) ||
-            !in_array(ProviderInterface::class, $interfaces)
+            !in_array(ServiceProviderInterface::class, $interfaces)
         ) {
             throw new ContainerException(
                 "Invalid provider , service provider " . 
-                "should MUST implement ProviderInterface!"
+                "MUST implement ServiceProviderInterface!"
             );
         }
 
