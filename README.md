@@ -95,7 +95,7 @@ $container->set('_function', fn() => 5+6);
 One exception for the `set()` method is that in case of class path , it could accept only the `$id` :
 
 ```
-// it doesn't make any since to do this , although it's valid :D
+// it doesn't make any sense to do this , although it's valid :D
 $container->set(MailerService::class, MailerService::class);
 
 // instead we use
