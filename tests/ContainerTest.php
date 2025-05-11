@@ -1717,4 +1717,28 @@ class ContainerTest extends TestCase
             $this->container->get(MarketingAdminExample::class)
         );
     }
+
+    /**
+     * Test autowire can call methods on classes and inject dependencies.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testAutowireCanCallMethodsOnClassesAndInjectDependencies()
+    {
+        $this->container->autowire();
+        
+        $this->container->call(
+            NotificationExample::class,
+            'pushMessageUsingMailer',
+            [
+                'name' => 'TESTING'
+            ]
+        );
+
+        $this->expectOutputString(
+            "The message (Notification using mailer to : \"TESTING\") " . 
+            "was sent to : testing@example.com\n"
+        );
+    }
 }

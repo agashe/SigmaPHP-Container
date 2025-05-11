@@ -565,6 +565,8 @@ $definitions = require_once(__DIR__ . '/path/to/definitions.php');
 $container = new Container($definitions);
 ```
 
+*Please Note : starting from version 0.1.1 the new method `setAll` could also be used to add definitions to container using arrays.* 
+
 ### Shared instances
 
 By default all instances defined by the container are shared , which means cached in the container , so instead of go through all the definitions and a create new instance for each dependency. the container caches all the dependencies , this mechanism add huge performance boost , specially with nested complex dependencies.

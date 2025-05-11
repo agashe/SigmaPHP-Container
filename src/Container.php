@@ -374,6 +374,19 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function call($id, $method, $args = [])
     {
+        if ($this->isAutowiringEnabled) {
+            if (!isset($this->instances[$id])) {
+                $this->instances[$id] = $this->createInstance($id);
+            }
+
+            return $this->resolveMethod(
+                $id, 
+                $method, 
+                $this->instances[$id], 
+                $args
+            );
+        }
+
         if (!$this->has($id)) {
             throw new NotFoundException(
                 "The id \"{$id}\" is not found in the container !"
@@ -500,7 +513,10 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     protected function resolveMethod($id, $method, $instance, $args = [])
     {
-        $methodRef = new \ReflectionMethod($this->dependencies[$id], $method);
+        // for non-autowired we load form the dependencies , otherwise we just
+        // use the definition's id
+        $class = (!$this->isAutowiringEnabled) ? $this->dependencies[$id] : $id;
+        $methodRef = new \ReflectionMethod($class, $method);
         $result = null;
 
         if ($methodRef->getParameters() !== null) {
