@@ -15,6 +15,14 @@ interface ContainerInterface
      * @return self 
      */
     public function set($id, $definition);
+    
+    /**
+     * Add a batch of definitions to the container.
+     * 
+     * @param array $definitions
+     * @return void 
+     */
+    public function setAll($definitions);
 
     /**
      * Bind a parameter to a definition.

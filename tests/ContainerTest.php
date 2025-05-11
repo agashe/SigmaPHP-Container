@@ -120,6 +120,65 @@ class ContainerTest extends TestCase
     }
 
     /**
+     * Test container can save a batch definitions at once.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanSaveABatchDefinitionsAtOnce()
+    {
+        $this->container->setAll([
+            'mailer' => MailerExample::class,
+            UserExample::class,
+            'log' => LogExample::class
+        ]);
+
+        // get private dependencies array
+        $dependencies = $this->getPrivatePropertyValue(
+            $this->container,
+            'dependencies'
+        );
+
+        $this->assertEquals(MailerExample::class, $dependencies['mailer']);
+        $this->assertEquals(UserExample::class,
+            $dependencies[UserExample::class]);
+        $this->assertEquals(LogExample::class, $dependencies['log']);
+    }
+
+    /**
+     * Test container will throw exception for invalid batch definitions.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerWillThrowExceptionForInvalidBatchDefinitions()
+    {
+        $invalidValues = [
+            [],
+            false,
+            null,
+            '',
+            123,
+            new \stdClass(),
+            fn() => true
+        ];
+
+        $countInvalidProviders = count($invalidValues);
+
+        foreach ($invalidValues as $invalidValue) {
+            try {
+                $this->container->setAll($invalidValue);
+            } catch (\Exception $e) {
+                if ($e instanceof \InvalidArgumentException) {
+                    $countInvalidProviders -= 1;
+                }
+            }
+        }
+
+        $this->assertEquals(0, $countInvalidProviders);
+    }
+
+    /**
      * Test container can check for id existence.
      *
      * @runInSeparateProcess
@@ -1238,13 +1297,13 @@ class ContainerTest extends TestCase
     }
 
     /**
-     * Test container will throw exception if providers was invalid for patch
+     * Test container will throw exception if providers was invalid for batch
      * service providers registration.
      *
      * @runInSeparateProcess
      * @return void
      */
-    public function testExceptionForInvalidProvidersInPatchRegister()
+    public function testExceptionForInvalidProvidersInBatchRegister()
     {
         $invalidValues = [
             [],

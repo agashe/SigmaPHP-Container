@@ -101,6 +101,37 @@ $container->set(MailerService::class, MailerService::class);
 // instead we use
 $container->set(MailerService::class);
 ```
+Also , we have the `setAll` method , to register our definitions faster , by loading them from array :
+
+```
+$container->setAll([
+    'mailer', MailerService::class,
+    LogService::class,
+    MailerServiceInterface::class, MailerService::class,
+    'PI', 3.14,
+    'odd_numbers', [1, 3, 5, 7],
+    'my_exception', (new \Exception('whatever...')),
+    '_function', fn() => 5+6
+]);
+```
+
+or you could separate your definitions in a file for example `definitions.php` and load this file :
+
+```
+// definitions.php
+return [
+    'mailer', MailerService::class,
+    LogService::class,
+    MailerServiceInterface::class, MailerService::class,
+    'PI', 3.14,
+    'odd_numbers', [1, 3, 5, 7],
+    'my_exception', (new \Exception('whatever...')),
+    '_function', fn() => 5+6
+];
+
+// in your app 
+$container->setAll(require_once('definitions.php'));
+```
 
 
 ### Constructor injection

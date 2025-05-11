@@ -187,6 +187,25 @@ class Container implements PsrContainerInterface , ContainerInterface
     }
 
     /**
+     * Add a batch of definitions to the container.
+     * 
+     * @param array $definitions
+     * @return void 
+     */
+    public function setAll($definitions)
+    {
+        if (!is_array($definitions) || empty($definitions)) {
+            throw new \InvalidArgumentException(
+                "Invalid definitions for `setAll` method !"
+            );
+        }
+
+        foreach ($definitions as $id => $definition) {
+            $this->set(!is_numeric($id) ? $id : $definition, $definition);
+        }
+    }
+
+    /**
      * Set a parameter or bind it to a definition.
      * 
      * @param string $name
