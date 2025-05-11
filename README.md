@@ -899,8 +899,8 @@ $container = new Container();
 $container->registerProviders([
     MailerServiceProvider::class,
     DbConnectionProvider::class,
-    UserProvider::class]
-);
+    UserProvider::class
+]);
 
 $user = $container->get(UserModel::class);
 ```
