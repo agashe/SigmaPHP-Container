@@ -41,6 +41,14 @@ interface ContainerInterface
      * @return void
      */
     public function registerProvider($provider);
+    
+    /**
+     * Register an array of service providers.
+     * 
+     * @param array $providers
+     * @return void
+     */
+    public function registerProviders($providers);
 
     /**
      * Make new instance of definition.

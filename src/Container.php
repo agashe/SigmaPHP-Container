@@ -93,8 +93,8 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function get($id)
     {
-        $this->registerProviders();
-        $this->bootProviders();
+        $this->registerProvidersInTheContainer();
+        $this->bootProvidersInTheContainer();
         
         if (!$this->has($id)) {
             // in case of a PHP built in class
@@ -277,6 +277,25 @@ class Container implements PsrContainerInterface , ContainerInterface
     }
 
     /**
+     * Register an array of service providers.
+     * 
+     * @param array $providers
+     * @return void
+     */
+    public function registerProviders($providers)
+    {
+        if (!is_array($providers) || empty($providers)) {
+            throw new \InvalidArgumentException(
+                "Invalid providers for `registerProviders` method !"
+            );
+        }
+
+        foreach ($providers as $provider) {
+            $this->registerProvider(($provider));
+        }
+    }
+
+    /**
      * Make new instance of definition.
      * 
      * @param string $id
@@ -284,8 +303,8 @@ class Container implements PsrContainerInterface , ContainerInterface
      */
     public function make($id)
     {
-        $this->registerProviders();
-        $this->bootProviders();
+        $this->registerProvidersInTheContainer();
+        $this->bootProvidersInTheContainer();
 
         if (!$this->has($id)) {
             // in case of a PHP built in class
@@ -556,7 +575,7 @@ class Container implements PsrContainerInterface , ContainerInterface
      * 
      * @return void
      */
-    protected function registerProviders()
+    protected function registerProvidersInTheContainer()
     {
         if (!$this->providersAreRegistered) {
             foreach ($this->providers as $provider) {
@@ -573,7 +592,7 @@ class Container implements PsrContainerInterface , ContainerInterface
      * 
      * @return void
      */
-    protected function bootProviders()
+    protected function bootProvidersInTheContainer()
     {
         if ($this->providersAreRegistered && 
             !$this->providersAreBooted && 

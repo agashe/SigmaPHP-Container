@@ -1162,6 +1162,31 @@ class ContainerTest extends TestCase
 
         $this->assertTrue(in_array(MailerExampleProvider::class, $providers));
     }
+    
+    /**
+     * Test container can register multiple providers at once.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testContainerCanRegisterMultipleProvidersAtOnce()
+    {
+        $this->container->registerProviders([
+            MailerExampleProvider::class,
+            UserExampleProvider::class,
+            LogExampleProvider::class,
+        ]);
+
+        // get private providers array
+        $providers = $this->getPrivatePropertyValue(
+            $this->container, 
+            'providers'
+        );
+
+        $this->assertTrue(in_array(MailerExampleProvider::class, $providers));
+        $this->assertTrue(in_array(UserExampleProvider::class, $providers));
+        $this->assertTrue(in_array(LogExampleProvider::class, $providers));
+    }
 
     /**
      * Test container will throw exception for invalid providers.
@@ -1210,6 +1235,40 @@ class ContainerTest extends TestCase
         $this->container->registerProvider(
             InvalidServiceProviderExample::class
         );
+    }
+
+    /**
+     * Test container will throw exception if providers was invalid for patch
+     * service providers registration.
+     *
+     * @runInSeparateProcess
+     * @return void
+     */
+    public function testExceptionForInvalidProvidersInPatchRegister()
+    {
+        $invalidValues = [
+            [],
+            false,
+            null,
+            '',
+            123,
+            new \stdClass(),
+            fn() => true
+        ];
+
+        $countInvalidProviders = count($invalidValues);
+
+        foreach ($invalidValues as $invalidValue) {
+            try {
+                $this->container->registerProviders($invalidValue);
+            } catch (\Exception $e) {
+                if ($e instanceof \InvalidArgumentException) {
+                    $countInvalidProviders -= 1;
+                }
+            }
+        }
+
+        $this->assertEquals(0, $countInvalidProviders);
     }
 
     /**

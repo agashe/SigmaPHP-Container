@@ -855,6 +855,24 @@ $container->registerProvider(UserProvider::class);
 
 $user = $container->get(UserModel::class);
 ```
+Finally in case we have many providers , instead of registering them one by one , we can use the `registerProviders` method , which accept an array of providers , so we can register all of them at once.
+
+```
+registerProviders(array $providers): void
+```
+So we can rewrite the previous example as following :
+
+```
+$container = new Container();
+
+$container->registerProviders([
+    MailerServiceProvider::class,
+    DbConnectionProvider::class,
+    UserProvider::class]
+);
+
+$user = $container->get(UserModel::class);
+```
 
 ### Autowiring 
 
