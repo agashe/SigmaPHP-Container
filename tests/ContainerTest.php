@@ -1706,11 +1706,14 @@ class ContainerTest extends TestCase
      * Test autowire can resolve intersection types.
      *
      * @runInSeparateProcess
-     * @requires PHP > 8.0
      * @return void
      */
     public function testAutowireCanResolveIntersectionTypes()
     {
+        if (PHP_VERSION_ID === 80000) {
+            $this->markTestSkipped('This test does not run on PHP 8.0');
+        }
+
         $this->container->autowire();
 
         $this->assertInstanceOf(
