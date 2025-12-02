@@ -1712,14 +1712,14 @@ class ContainerTest extends TestCase
     {
         if (PHP_VERSION_ID === 80000) {
             $this->markTestSkipped('This test does not run on PHP 8.0');
+        } else {
+            $this->container->autowire();
+
+            $this->assertInstanceOf(
+                MarketingAdminExample::class,
+                $this->container->get(MarketingAdminExample::class)
+            );
         }
-
-        $this->container->autowire();
-
-        $this->assertInstanceOf(
-            MarketingAdminExample::class,
-            $this->container->get(MarketingAdminExample::class)
-        );
     }
 
     /**
