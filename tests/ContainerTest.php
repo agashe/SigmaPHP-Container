@@ -224,7 +224,7 @@ class ContainerTest extends TestCase
     }
 
     /**
-     * 
+     *
      * Test container can accept different types of definitions.
      *
      * @runInSeparateProcess
@@ -246,7 +246,7 @@ class ContainerTest extends TestCase
 
         foreach ($definitions as $i => $definition) {
             $this->container->set("item{$i}", $definition);
-            
+
             if ($this->container->get("item{$i}") == $definition) {
                 $countAssertions -= 1;
             }
@@ -356,7 +356,7 @@ class ContainerTest extends TestCase
     public function testContainerCanAcceptInterfacesAsId()
     {
         $this->container->set(
-            MailerExampleInterface::class, 
+            MailerExampleInterface::class,
             MailerExample::class
         );
 
@@ -445,7 +445,7 @@ class ContainerTest extends TestCase
         );
 
         $greeterService = $this->container->get(GreeterExample::class);
-        
+
         // invoke the class
         $greeterService();
 
@@ -501,7 +501,7 @@ class ContainerTest extends TestCase
             $params[UserExample::class][MailerExample::class]
         );
     }
-  
+
     /**
      * Test container can throw exception if the single parameter for `setParam`
      * is not bounded to a class.
@@ -530,7 +530,7 @@ class ContainerTest extends TestCase
         $this->container->set('mailer', MailerExample::class)
             ->setParam('invalid');
     }
-    
+
     /**
      * Test container can throw exception if trying to set a parameter for an
      * invalid item which is not a class path or a closure.
@@ -767,7 +767,7 @@ class ContainerTest extends TestCase
     public function testContainerCanBindParametersForFactories()
     {
         $this->container->set(MailerExample::class);
-        $this->container->set('sendEmail', 
+        $this->container->set('sendEmail',
             function (MailerExample $mailer, $email, $body) {
                 $mailer->send($email, $body);
             })
@@ -781,9 +781,9 @@ class ContainerTest extends TestCase
             "The message (Hi, test) was sent to : test@example.com\n"
         );
     }
-    
+
     /**
-     * Test container can bind primitives and default values 
+     * Test container can bind primitives and default values
      * for factories (closures).
      *
      * @runInSeparateProcess
@@ -800,7 +800,7 @@ class ContainerTest extends TestCase
 
         $this->assertEquals(10000, $this->container->get('findBoxVolume'));
     }
-    
+
     /**
      * Test factory can accept the container as a parameter.
      *
@@ -902,7 +902,7 @@ class ContainerTest extends TestCase
             "sent to : ali@example.com\n"
         );
     }
-    
+
     /**
      * Test container can inject setter method without passing parameters.
      *
@@ -1215,13 +1215,13 @@ class ContainerTest extends TestCase
 
         // get private providers array
         $providers = $this->getPrivatePropertyValue(
-            $this->container, 
+            $this->container,
             'providers'
         );
 
         $this->assertTrue(in_array(MailerExampleProvider::class, $providers));
     }
-    
+
     /**
      * Test container can register multiple providers at once.
      *
@@ -1238,7 +1238,7 @@ class ContainerTest extends TestCase
 
         // get private providers array
         $providers = $this->getPrivatePropertyValue(
-            $this->container, 
+            $this->container,
             'providers'
         );
 
@@ -1391,7 +1391,7 @@ class ContainerTest extends TestCase
             "sent to : admin2@example.com\n"
         );
     }
-    
+
     /**
      * Test container can inject PHP built in classes.
      *
@@ -1412,7 +1412,7 @@ class ContainerTest extends TestCase
 
         $this->expectOutputString("Help !! Exception\n");
     }
-    
+
     /**
      * Test container can make objects out of class paths.
      *
@@ -1441,7 +1441,7 @@ class ContainerTest extends TestCase
             "The message (Hello \"ahmed\") was sent to : ahmed@eample.com\n"
         );
     }
-    
+
     /**
      * Test make will return new instance on every call.
      *
@@ -1501,7 +1501,7 @@ class ContainerTest extends TestCase
 
         $this->container->make('foo');
     }
-    
+
     /**
      * Test container can call methods on classes and inject dependencies.
      *
@@ -1522,11 +1522,11 @@ class ContainerTest extends TestCase
         );
 
         $this->expectOutputString(
-            "The message (Notification using mailer to : \"TESTING\") " . 
+            "The message (Notification using mailer to : \"TESTING\") " .
             "was sent to : testing@example.com\n"
         );
     }
-    
+
     /**
      * Test call will throw exception if the id is not found.
      *
@@ -1564,10 +1564,10 @@ class ContainerTest extends TestCase
     public function testContainerCanCallClosuresAndInjectDependencies()
     {
         $this->container->set(MailerExample::class);
-        
+
         $this->container->callFunction(
             function (
-                MailerExample $mailer, 
+                MailerExample $mailer,
                 $body,
                 $email = 'testing@example.com'
             ) {
@@ -1579,7 +1579,7 @@ class ContainerTest extends TestCase
         );
 
         $this->expectOutputString(
-            "The message (Test call function method) " . 
+            "The message (Test call function method) " .
             "was sent to : testing@example.com\n"
         );
     }
@@ -1598,7 +1598,7 @@ class ContainerTest extends TestCase
 
         $this->container->callFunction(MailerExample::class);
     }
-    
+
     /**
      * Test container can autowire dependencies.
      *
@@ -1613,12 +1613,12 @@ class ContainerTest extends TestCase
             MailerExample::class,
             $this->container->get(MailerExample::class)
         );
-        
+
         $this->assertInstanceOf(
             UserExample::class,
             $this->container->get(UserExample::class)
         );
-        
+
         $this->assertInstanceOf(
             LogExample::class,
             $this->container->get(LogExample::class)
@@ -1674,7 +1674,7 @@ class ContainerTest extends TestCase
     public function testAutowireCanInjectInterfaces()
     {
         $this->container->set(
-            MailerExampleInterface::class, 
+            MailerExampleInterface::class,
             MarketingMailerExample::class
         );
 
@@ -1685,7 +1685,7 @@ class ContainerTest extends TestCase
             $this->container->get(CustomerExample::class)
         );
     }
-    
+
     /**
      * Test autowire can resolve union types.
      *
@@ -1701,11 +1701,12 @@ class ContainerTest extends TestCase
             $this->container->get(SuperAdminExample::class)
         );
     }
-    
+
     /**
      * Test autowire can resolve intersection types.
      *
      * @runInSeparateProcess
+     * @requires PHP > 8.0
      * @return void
      */
     public function testAutowireCanResolveIntersectionTypes()
@@ -1727,7 +1728,7 @@ class ContainerTest extends TestCase
     public function testAutowireCanCallMethodsOnClassesAndInjectDependencies()
     {
         $this->container->autowire();
-        
+
         $this->container->call(
             NotificationExample::class,
             'pushMessageUsingMailer',
@@ -1737,7 +1738,7 @@ class ContainerTest extends TestCase
         );
 
         $this->expectOutputString(
-            "The message (Notification using mailer to : \"TESTING\") " . 
+            "The message (Notification using mailer to : \"TESTING\") " .
             "was sent to : testing@example.com\n"
         );
     }
